@@ -1,20 +1,28 @@
 import { Router, Request, Response } from 'express';
 import PDFDocument from 'pdfkit';
 import RentalTransaction from '../models/RentalTransaction';
+import { calculateRentalFinancials } from './rentals';
 
 const router = Router();
 
 router.get('/:type/:transactionId', async (req: Request, res: Response) => {
   try {
     const { type, transactionId } = req.params;
-    const rental = await RentalTransaction.findOne({ transactionId }).populate('customerId kebayaId');
+    const rawRental = await RentalTransaction.findOne({ transactionId })
+      .populate('customerIds')
+      .populate({ path: 'roomId', populate: { path: 'roomTypeId' } });
     
-    if (!rental) {
+    if (!rawRental) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    const customer: any = rental.customerId;
-    const room: any = rental.kebayaId;
+    const rental = calculateRentalFinancials(rawRental);
+
+    const customers: any = rental.customerIds || [];
+    const customerNames = customers.map((c: any) => c.name).join(', ') || 'Unknown';
+    const customerPhones = customers.map((c: any) => c.telephone).join(', ') || 'Unknown';
+    const room: any = rental.roomId;
+    const roomType: any = room?.roomTypeId;
 
     const doc = new PDFDocument({ size: 'A5', layout: 'landscape', margin: 30 });
     
@@ -37,24 +45,45 @@ router.get('/:type/:transactionId', async (req: Request, res: Response) => {
     doc.fontSize(12).font('Helvetica-Bold').text('Detail Transaksi:', 30, startY);
     doc.font('Helvetica').text(`ID Transaksi  : ${transactionId}`, 30, startY + 20);
     doc.text(`Tanggal Cetak : ${new Date().toLocaleString('id-ID')}`, 30, startY + 40);
-    doc.text(`Pelanggan     : ${customer?.name}`, 30, startY + 60);
-    doc.text(`Telepon       : ${customer?.telephone}`, 30, startY + 80);
+    doc.text(`Pelanggan     : ${customerNames}`, 30, startY + 60, { width: 250 });
+    doc.text(`Telepon       : ${customerPhones}`, 30, startY + 90, { width: 250 });
 
     // Details Right
     doc.font('Helvetica-Bold').text('Detail Sewa:', 300, startY);
-    doc.font('Helvetica').text(`Room        : ${room?.tipeKamar} - ${room?.fasilitas}`, 300, startY + 20);
-    doc.text(`Jatuh Tempo   : ${new Date(rental.expectedReturnDate).toLocaleDateString('id-ID')}`, 300, startY + 40);
+    doc.font('Helvetica').text(`Room        : ${room?.roomNumber} (${roomType?.name})`, 300, startY + 20);
     
-    if (type === 'Deposit') {
-      doc.text(`Harga Sewa    : Rp ${room?.price}`, 300, startY + 60);
-      doc.text(`Deposit Dibayar : Rp ${rental.depositAmount} ${rental.depositPaid ? '(LUNAS)' : '(BELUM LUNAS)'}`, 300, startY + 80);
+    let totalTagihanSaatIni = 0;
+    
+    if (rental.rentalType === 'Long-Stay') {
+      doc.text(`Terbayar S/D  : ${new Date(rental.paidUntil || rental.rentalStartTime).toLocaleDateString('id-ID')}`, 300, startY + 40);
+      doc.text(`Harga Sewa    : Rp ${roomType?.price}/Bulan`, 300, startY + 60);
+      totalTagihanSaatIni = rental.totalPaid + rental.tunggakanAmount;
     } else {
-      doc.text(`Total Denda   : Rp ${rental.penaltyAmount || 0}`, 300, startY + 60);
-      doc.text(`Total Dibayar : Rp ${rental.amountToPay || 0}`, 300, startY + 80);
+      doc.text(`C/O atau Tenggat : ${new Date(rental.expectedReturnDate || rental.rentalStartTime).toLocaleDateString('id-ID')}`, 300, startY + 40);
+      const harian = roomType?.priceDaily || Math.ceil((roomType?.price || 0) / 30);
+      doc.text(`Harga Sewa    : Rp ${harian}/Hari`, 300, startY + 60);
+      
+      const start = new Date(rental.rentalStartTime);
+      const end = new Date(rental.expectedReturnDate || rental.rentalStartTime);
+      let days = Math.ceil((end.getTime() - start.getTime()) / 86400000);
+      if (days < 1) days = 1;
+      totalTagihanSaatIni = days * harian;
+    }
+    
+    if (type === 'Deposit' || type === 'Payment') {
+      doc.text(`Total Tagihan : Rp ${totalTagihanSaatIni}`, 300, startY + 80);
+      doc.text(`Total Dibayar : Rp ${rental.totalPaid}`, 300, startY + 100);
+      if (rental.tunggakanAmount > 0) {
+        doc.fillColor('red').text(`Kekurangan    : Rp ${rental.tunggakanAmount}`, 300, startY + 120);
+      } else if (rental.saldoMengendap > 0) {
+        doc.fillColor('green').text(`Saldo (Kredit): Rp ${rental.saldoMengendap}`, 300, startY + 120);
+      }
+    } else {
+      doc.text(`Total Dibayar Akhir: Rp ${rental.amountToPay || 0}`, 300, startY + 80);
     }
 
     doc.moveDown();
-    const finalY = doc.y + 40;
+    const finalY = doc.y + 110;
     doc.moveTo(30, finalY).lineTo(565, finalY).strokeColor('#dddddd').stroke();
     
     doc.text('', 30, finalY + 10);

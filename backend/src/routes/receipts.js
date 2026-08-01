@@ -10,12 +10,12 @@ const router = (0, express_1.Router)();
 router.get('/:type/:transactionId', async (req, res) => {
     try {
         const { type, transactionId } = req.params;
-        const rental = await RentalTransaction_1.default.findOne({ transactionId }).populate('customerId kebayaId');
+        const rental = await RentalTransaction_1.default.findOne({ transactionId }).populate('customerId roomId');
         if (!rental) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         const customer = rental.customerId;
-        const room = rental.kebayaId;
+        const room = rental.roomId;
         const doc = new pdfkit_1.default({ size: 'A5', layout: 'landscape', margin: 30 });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename=${type}_${transactionId}.pdf`);

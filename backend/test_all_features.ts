@@ -47,7 +47,7 @@ async function runTests() {
     const rental = await RentalTransaction.create({
       transactionId: 'TRX-TEST-001',
       customerId: customer._id,
-      kebayaId: room._id,
+      roomId: room._id,
       rentalDate: new Date(),
       expectedReturnDate: expectedReturn,
       status: 'Active',

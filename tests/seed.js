@@ -7,7 +7,7 @@ const API = 'http://localhost:3001/api';
 async function seedData() {
   console.log('Seeding dummy data...');
   const state = {
-    kebayaIds: [],
+    roomIds: [],
     customerIds: [],
     rentalIds: []
   };
@@ -24,7 +24,7 @@ async function seedData() {
       kebayaData.append('availableStock', '20');
       const res = await fetch(`${API}/rooms`, { method: 'POST', body: kebayaData });
       const k = await res.json();
-      state.kebayaIds.push(k._id);
+      state.roomIds.push(k._id);
     }
 
     // 2. Create 5 Customers
@@ -40,7 +40,7 @@ async function seedData() {
 
     // 3. Create 20 Rentals
     for (let i = 0; i < 20; i++) {
-      const kId = state.kebayaIds[i % 5];
+      const kId = state.roomIds[i % 5];
       const cId = state.customerIds[i % 5];
 
       const res3 = await fetch(`${API}/rentals`, {
@@ -48,7 +48,7 @@ async function seedData() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerId: cId,
-          kebayaId: kId,
+          roomId: kId,
           expectedReturnDate: new Date().toISOString(),
           depositAmount: 50000,
           depositPaid: false
@@ -92,7 +92,7 @@ async function cleanupData(state) {
       // Let's add a quick hack to delete using the fetch if we have an endpoint, or just leave it.
       // For rooms and customers we can delete.
     }
-    for (const kId of state.kebayaIds) {
+    for (const kId of state.roomIds) {
       await fetch(`${API}/rooms/${kId}`, { method: 'DELETE' });
     }
     for (const cId of state.customerIds) {

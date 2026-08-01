@@ -39,12 +39,12 @@ export const startCronJobs = () => {
       const lateRentals = await RentalTransaction.find({
         status: 'Active',
         expectedReturnDate: { $lt: today }
-      }).populate('customerId kebayaId');
+      }).populate('customerIds roomId');
 
       const rentalsDueTomorrow = await RentalTransaction.find({
         status: 'Active',
         expectedReturnDate: { $gte: new Date(tomorrow.setHours(0,0,0,0)), $lt: new Date(tomorrow.setHours(23,59,59,999)) }
-      }).populate('customerId kebayaId');
+      }).populate('customerIds roomId');
 
       if (lateRentals.length === 0 && rentalsDueTomorrow.length === 0) {
         console.log('[Cron] No late or upcoming rentals found today.');
@@ -53,9 +53,10 @@ export const startCronJobs = () => {
 
       let emailText = `Warning! There are ${lateRentals.length} late room rentals today:\n\n`;
       lateRentals.forEach(r => {
-        const c = r.customerId as any;
-        const k = r.kebayaId as any;
-        emailText += `- Customer: ${c.name} (${c.telephone})\n  Room: ${k.tipeKamar} (${k.fasilitas})\n  Expected Return: ${new Date(r.expectedReturnDate).toLocaleDateString()}\n\n`;
+        const c = r.customerIds as any[];
+        const k = r.roomId as any;
+        const customerNames = c ? c.map(user => user.name).join(', ') : 'Unknown';
+        emailText += `- Customers: ${customerNames}\n  Room: ${k?.tipeKamar} (${k?.fasilitas})\n  Expected Return: ${new Date(r.expectedReturnDate).toLocaleDateString()}\n\n`;
       });
 
       const info = await transporter.sendMail({
@@ -70,10 +71,14 @@ export const startCronJobs = () => {
       const config = await Config.findOne();
       if (config?.enableWhatsAppBot && getWhatsAppStatus().isReady) {
         for (const rental of rentalsDueTomorrow) {
-          const c = rental.customerId as any;
-          if (c && c.telephone) {
-            const msg = `Halo Kak ${c.name}, mengingatkan bahwa penyewaan room Anda jatuh tempo besok (${tomorrow.toLocaleDateString('id-ID', {day:'numeric', month:'long'})}). Mohon dikembalikan tepat waktu ya! Terima kasih, Kosan Fio.`;
-            await sendWhatsAppMessage(c.telephone, msg);
+          const customers = rental.customerIds as any[];
+          if (customers && customers.length > 0) {
+            for (const c of customers) {
+              if (c && c.telephone) {
+                const msg = `Halo Kak ${c.name}, mengingatkan bahwa penyewaan room Anda jatuh tempo besok (${tomorrow.toLocaleDateString('id-ID', {day:'numeric', month:'long'})}). Mohon dikembalikan tepat waktu ya! Terima kasih, Kosan Fio.`;
+                await sendWhatsAppMessage(c.telephone, msg);
+              }
+            }
           }
         }
       }
@@ -113,7 +118,7 @@ export const fetchPublicHolidays = async (year: number) => {
         { holiday_date: `${year}-05-01`, holiday_name: 'Hari Buruh Internasional', is_national_holiday: true },
         { holiday_date: `${year}-05-27`, holiday_name: 'Idul Adha (Estimasi)', is_national_holiday: true },
         { holiday_date: `${year}-06-01`, holiday_name: 'Hari Lahir Pancasila', is_national_holiday: true },
-        { holiday_date: `${year}-08-17`, holiday_name: 'Hari Kemerdekaan Republik Indonesia', is_national_holiday: true },
+        { holiday_date: `${year}-08-17`, Hari_Kemerdekaan_Republik_Indonesia: 'Hari Kemerdekaan Republik Indonesia', is_national_holiday: true },
         { holiday_date: `${year}-12-25`, holiday_name: 'Hari Raya Natal', is_national_holiday: true }
       ];
     }
@@ -127,12 +132,14 @@ export const fetchPublicHolidays = async (year: number) => {
     for (const h of holidays) {
       if (h.is_national_holiday) {
         const hDate = new Date(h.holiday_date);
+        const nameToUse = h.holiday_name || h.Hari_Kemerdekaan_Republik_Indonesia;
+        if (!nameToUse) continue;
         
-        if (fixedMasehi.includes(h.holiday_name)) {
-          const existing = await Event.findOne({ name: h.holiday_name, isPublicHoliday: true });
+        if (fixedMasehi.includes(nameToUse)) {
+          const existing = await Event.findOne({ name: nameToUse, isPublicHoliday: true });
           if (!existing) {
             await Event.create({
-              name: h.holiday_name,
+              name: nameToUse,
               date: hDate,
               description: 'Libur Nasional',
               recurring: 'yearly',
@@ -142,10 +149,10 @@ export const fetchPublicHolidays = async (year: number) => {
           }
         } else {
           // Check if it already exists for this exact shifting year to prevent duplicates on multiple boots
-          const existingShift = await Event.findOne({ name: h.holiday_name, isPublicHoliday: true, isHijriah: true, date: hDate });
+          const existingShift = await Event.findOne({ name: nameToUse, isPublicHoliday: true, isHijriah: true, date: hDate });
           if (!existingShift) {
              await Event.create({
-               name: h.holiday_name,
+               name: nameToUse,
                date: hDate,
                description: 'Libur Nasional',
                recurring: 'none',

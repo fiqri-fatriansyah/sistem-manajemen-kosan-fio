@@ -14,7 +14,7 @@ It is built using the MEVN stack (MongoDB, Express.js, Vue 3 / Nuxt 4, Node.js) 
 ### Database Schemas (MongoDB / Mongoose)
 - **Room**: `tipeKamar` (String), `fasilitas` (String), `price` (Number), `totalStock` (Number), `availableStock` (Number), `imageUrl` (String).
 - **Customer**: `name` (String), `telephone` (String), `address` (String), `email` (String), `isActive` (Boolean - for soft delete).
-- **RentalTransaction**: `transactionId` (String), `customerId` (ObjectId), `kebayaId` (ObjectId), `rentalStartTime` (Date), `expectedReturnDate` (Date), `rentalEndTime` (Date), `amountToPay` (Number), `depositAmount` (Number), `depositPaid` (Boolean), `status` (String: 'Active' | 'Completed' | 'Cancelled').
+- **RentalTransaction**: `transactionId` (String), `customerId` (ObjectId), `roomId` (ObjectId), `rentalStartTime` (Date), `expectedReturnDate` (Date), `rentalEndTime` (Date), `amountToPay` (Number), `depositAmount` (Number), `depositPaid` (Boolean), `status` (String: 'Active' | 'Completed' | 'Cancelled').
 - **AuditLog**: `timestamp` (Date), `action` (String), `entity` (String), `details` (String).
 - **Config**: `penaltyType` (String), `penaltyCost` (Number).
 

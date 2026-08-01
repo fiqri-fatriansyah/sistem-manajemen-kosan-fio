@@ -1,187 +1,387 @@
+import mongoose from 'mongoose';
+import RoomType from '../models/RoomType';
 import Room from '../models/Room';
 import Customer from '../models/Customer';
 import RentalTransaction from '../models/RentalTransaction';
+import FeatureTag from '../models/FeatureTag';
 
 export const generateAdvancedSeed = async () => {
-  console.log('Generating Advanced Demo Data...');
+  console.log('Generating Kosan Demo Data...');
 
-  // 1. Rooms
-  const rooms = [
-    { tipeKamar: 'Tipe VIP (AC + Kamar Mandi Dalam)', fasilitas: 'AC, WiFi, Water Heater, Kasur Queen', price: 2500000, totalStock: 10, availableStock: 6, cleaningStock: 2, maintenanceStock: 2, conditions: { 'Sangat Baik': 8, 'Baik': 2, 'Rusak Ringan': 0 }, imageUrl: '/img/kosan_background.jpg' },
-    { tipeKamar: 'Tipe A (AC)', fasilitas: 'AC, WiFi, Kamar Mandi Dalam, Kasur Single', price: 1800000, totalStock: 15, availableStock: 10, cleaningStock: 3, maintenanceStock: 2, conditions: { 'Sangat Baik': 10, 'Baik': 5, 'Rusak Ringan': 0 }, imageUrl: '/img/kosan_background.jpg' },
-    { tipeKamar: 'Tipe B (Non-AC)', fasilitas: 'Kipas Angin, WiFi, Kamar Mandi Dalam', price: 1200000, totalStock: 15, availableStock: 12, cleaningStock: 2, maintenanceStock: 1, conditions: { 'Sangat Baik': 10, 'Baik': 3, 'Rusak Ringan': 2 }, imageUrl: '/img/kosan_background.jpg' },
-    { tipeKamar: 'Tipe Ekonomi', fasilitas: 'Kamar Mandi Luar, Kipas Angin, Kasur Busa', price: 800000, totalStock: 20, availableStock: 18, cleaningStock: 2, maintenanceStock: 0, conditions: { 'Sangat Baik': 15, 'Baik': 3, 'Rusak Ringan': 2 }, imageUrl: '/img/kosan_background.jpg' },
-    { tipeKamar: 'Tipe Eksklusif (Harian)', fasilitas: 'AC, TV, WiFi, Water Heater, Breakfast', price: 250000, totalStock: 5, availableStock: 3, cleaningStock: 1, maintenanceStock: 1, conditions: { 'Sangat Baik': 4, 'Baik': 1, 'Rusak Ringan': 0 }, imageUrl: '/img/kosan_background.jpg' },
+  // Clear existing
+  await RoomType.deleteMany({});
+  await Room.deleteMany({});
+  await Customer.deleteMany({});
+  await RentalTransaction.deleteMany({});
+  await FeatureTag.deleteMany({});
+
+  // 1. Feature Tags
+  const featureNames = [
+    'AC', 'Kamar Mandi Dalam', 'Kipas Angin', 'Water Heater', 'WiFi', 
+    'Kasur Queen', 'Kasur Single', 'Kasur Busa', 'TV', 'Breakfast', 
+    'Kamar Mandi Luar', 'Kulkas Mini', 'Balkon'
+  ];
+  await FeatureTag.insertMany(featureNames.map(name => ({ name })));
+
+  // 2. Room Types
+  const roomTypes = [
+    { name: 'Tipe VIP', features: ['AC', 'Kamar Mandi Dalam', 'WiFi', 'Water Heater', 'Kasur Queen', 'TV'], price: 2500000, priceDaily: 200000, imageUrl: '/uploads/rooms/type_vip_1785572165962.jpg' },
+    { name: 'Tipe A', features: ['AC', 'Kamar Mandi Dalam', 'WiFi', 'Kasur Single'], price: 1800000, priceDaily: 150000, imageUrl: '/uploads/rooms/type_standard_1785572174935.jpg' },
+    { name: 'Tipe B', features: ['Kipas Angin', 'Kamar Mandi Dalam', 'WiFi'], price: 1200000, priceDaily: 100000, imageUrl: '/uploads/rooms/type_economy_1785572184072.jpg' },
+    { name: 'Tipe Kapsul', features: ['AC', 'Kamar Mandi Luar', 'WiFi', 'Kasur Single'], price: 900000, priceDaily: 75000, imageUrl: '/uploads/rooms/type_capsule_1785572202974.jpg' },
+    { name: 'Tipe Family', features: ['AC', 'Kamar Mandi Dalam', 'WiFi', 'Water Heater', 'Kasur Queen', 'Breakfast'], price: 3500000, priceDaily: 300000, imageUrl: '/uploads/rooms/type_family_1785572193665.jpg' },
+  ];
+  const insertedRoomTypes = await RoomType.insertMany(roomTypes);
+
+  // 3. Individual Rooms
+  const roomImages = [
+    '/uploads/rooms/room_1_1785572223534.jpg', '/uploads/rooms/room_2_1785572233049.jpg',
+    '/uploads/rooms/room_3_1785572243220.jpg', '/uploads/rooms/room_4_1785572253659.jpg',
+    '/uploads/rooms/room_5_1785572263959.jpg', '/uploads/rooms/room_6_1785572273875.jpg'
   ];
   
-  const insertedRooms = await Room.insertMany(rooms);
+  const roomsToInsert = [];
+  let roomCounter = 1;
 
-  // 2. Customers
+  for (const rt of insertedRoomTypes) {
+    // Generate 4 to 7 rooms per type
+    const numRooms = Math.floor(Math.random() * 4) + 4;
+    for (let i = 0; i < numRooms; i++) {
+       const roomFeatures = [...rt.features];
+       if (Math.random() > 0.7) roomFeatures.push('Kulkas Mini');
+       if (Math.random() > 0.85) roomFeatures.push('Balkon');
+       
+       // Keep some rooms available, others for seeding active rentals
+       const status = 'Available'; 
+       
+       const specificPriceMonthly = Math.random() > 0.8 ? rt.price + 200000 : undefined;
+       const specificPriceDaily = specificPriceMonthly ? rt.priceDaily + 20000 : undefined;
+
+       roomsToInsert.push({
+         roomNumber: `${rt.name.split(' ')[1] || 'Room'}-${roomCounter++}`,
+         roomTypeId: rt._id,
+         features: roomFeatures,
+         status: status,
+         priceMonthly: specificPriceMonthly,
+         priceDaily: specificPriceDaily,
+         imageUrl: roomImages[Math.floor(Math.random() * roomImages.length)]
+       });
+    }
+  }
+  const insertedRooms = await Room.insertMany(roomsToInsert);
+
+  // 4. Customers
   const customers = [
-    { name: 'Siti Aminah', telephone: '081234567890', address: 'Jl. Merdeka No. 1, Jakarta', email: 'siti@example.com' },
-    { name: 'Budi Santoso', telephone: '085678901234', address: 'Komp. Polri No. 5B', email: 'budi_s@example.com' },
-    { name: 'Rina Wijaya', telephone: '082123123123', address: 'Apartemen Sudirman Lt 15', email: 'rina.w@example.com' },
-    { name: 'Dewi Lestari', telephone: '081987654321', address: '', email: 'dewi.l@example.com' }, 
-    { name: 'Agus Pratama', telephone: '087812345678', address: 'Jl. Kenangan No. 99', email: '' }, 
-    { name: 'Maya Sari', telephone: '081112223334', address: 'Perumahan Elit Blok A1', email: 'maya.s@example.com' },
-    { name: 'Putri Nurhaliza', telephone: '085544332211', address: '', email: '' }, // Completely empty optionals
-    { name: 'Bagas Firmansyah', telephone: '089988776655', address: '', email: '' }  // Completely empty optionals
+    { name: 'Siti Aminah', telephone: '081234567890', address: 'Jl. Merdeka No. 1' },
+    { name: 'Budi Santoso', telephone: '085678901234', address: 'Komp. Polri No. 5B' },
+    { name: 'Rina Wijaya', telephone: '082123123123', address: 'Apartemen Sudirman Lt 15' },
+    { name: 'Dewi Lestari', telephone: '081987654321', address: '' }, 
+    { name: 'Agus Pratama', telephone: '087812345678', address: 'Jl. Kenangan No. 99' }, 
+    { name: 'Maya Sari', telephone: '081112223334', address: 'Perumahan Elit Blok A1' },
+    { name: 'Putri Nurhaliza', telephone: '085544332211', address: '' },
+    { name: 'Bagas Firmansyah', telephone: '089988776655', address: '' },
+    { name: 'Joko Anwar', telephone: '081212341234', address: '' },
+    { name: 'Sri Mulyani', telephone: '085656785678', address: '' },
+    { name: 'Andi Saputra', telephone: '082233445566', address: '' }
   ];
-
   const insertedCustomers = await Customer.insertMany(customers);
 
-  // 3. Rentals (Variations in Dates, Prices, Payments, and Statuses)
+  // 5. Rentals
   const rentals = [];
   const now = new Date();
+  
+  // Keep track of which rooms are occupied so we don't double book Active ones
+  const occupiedRoomIds = new Set();
+  
+  // Helper to pick random available room
+  const pickRoom = () => {
+    let r = insertedRooms[Math.floor(Math.random() * insertedRooms.length)];
+    while(occupiedRoomIds.has(r._id.toString())) {
+      r = insertedRooms[Math.floor(Math.random() * insertedRooms.length)];
+    }
+    return r;
+  };
 
-  // 3a. Generate Historical Rentals (Completed & Cancelled)
-  // We want to skew the data: some customers are highly loyal, some rooms are extremely popular.
-  for (let i = 0; i < 40; i++) {
-    let kIndex = 0;
-    let cIndex = 0;
+  // 5a. Active Long-Stay (Normal, Multi-tenant, and Advance Paid)
+  for (let i = 0; i < 6; i++) {
+    const room = pickRoom();
+    occupiedRoomIds.add(room._id.toString());
+    const rt = insertedRoomTypes.find(t => t._id.toString() === room.roomTypeId.toString());
     
-    // Weighted distribution for Room (Room 0 and 2 are very popular)
-    const kRand = Math.random();
-    if (kRand < 0.4) kIndex = 0;
-    else if (kRand < 0.7) kIndex = 2;
-    else if (kRand < 0.8) kIndex = 1;
-    else if (kRand < 0.9) kIndex = 3;
-    else kIndex = 4;
-
-    // Weighted distribution for Customer (Customer 0 and 1 are extremely loyal)
-    const cRand = Math.random();
-    if (cRand < 0.35) cIndex = 0; // 35% chance
-    else if (cRand < 0.6) cIndex = 1; // 25% chance
-    else if (cRand < 0.75) cIndex = 2; 
-    else if (cRand < 0.85) cIndex = 3;
-    else if (cRand < 0.9) cIndex = 4;
-    else if (cRand < 0.95) cIndex = 5;
-    else cIndex = i % 2 === 0 ? 6 : 7; // Minimal usage for completely empty customers
-
-    const k = insertedRooms[kIndex];
-    const c = insertedCustomers[cIndex];
-    
-    // Spread dates over the last 11 months
-    const monthOffset = i % 12; 
-    const rentDate = new Date(now.getFullYear(), now.getMonth() - monthOffset, Math.floor(Math.random() * 28) + 1);
-    const returnDate = new Date(rentDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days later (1 month rent)
-    
-    // Payment variation (Historical)
-    const depositAmount = k.price;
-    const isPartial = i % 3 === 0;
-    const payments = [];
-    
-    if (isPartial) {
-      payments.push({ amount: depositAmount / 2, date: rentDate, receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` });
-      payments.push({ amount: depositAmount / 2, date: new Date(rentDate.getTime() + 86400000), receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` });
-    } else {
-      payments.push({ amount: depositAmount, date: rentDate, receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` });
+    // 20% chance of multi-tenant
+    const tenantIds = [insertedCustomers[i]._id];
+    if (Math.random() > 0.8) {
+      tenantIds.push(insertedCustomers[(i + 1) % insertedCustomers.length]._id);
     }
 
-    const isCancelled = i % 10 === 0; // 10% cancelled
-    const penalty = (!isCancelled && i % 4 === 0) ? 50000 : 0;
-    const amountToPay = isCancelled ? 0 : depositAmount + penalty;
+    // Rentals started between 1 and 6 months ago
+    const monthsAgo = Math.floor(Math.random() * 6) + 1;
+    const start = new Date(now.getFullYear(), now.getMonth() - monthsAgo, Math.floor(Math.random() * 28) + 1);
+    
+    // Decide if they paid exactly up to date, or in advance
+    // For example, if they started 2 months ago, they should have paid 2 times minimum.
+    // Maybe they paid 4 times (2 months in advance).
+    const monthsPaid = monthsAgo + (Math.random() > 0.7 ? 2 : 0); // Sometimes paid in advance
+    const paidUntil = new Date(start.getFullYear(), start.getMonth() + monthsPaid, start.getDate());
+    
+    // Generate payments array
+    const payments = [];
+    for (let m = 0; m < monthsPaid; m++) {
+      payments.push({
+        amount: rt.price,
+        date: new Date(start.getFullYear(), start.getMonth() + m, start.getDate()),
+        receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+      });
+    }
 
     rentals.push({
       transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-      customerId: c._id,
-      roomId: k._id,
-      rentalStartTime: rentDate,
-      expectedReturnDate: returnDate,
-      rentalEndTime: isCancelled ? rentDate : returnDate,
-      depositAmount: isCancelled ? 0 : depositAmount,
-      depositPaid: !isCancelled,
-      payments: isCancelled ? [] : payments,
-      status: isCancelled ? 'Cancelled' : 'Completed',
-      penaltyCost: penalty,
-      amountToPay: amountToPay,
-      returnCondition: isCancelled ? '' : 'Baik',
-      roomDestination: isCancelled ? '' : 'Etalase'
+      customerIds: tenantIds,
+      roomId: room._id,
+      rentalType: 'Long-Stay',
+      rentalStartTime: start,
+      paymentReminderDate: start.getDate(),
+      paidUntil: paidUntil,
+      status: 'Active',
+      depositAmount: rt.price, // 1 month deposit
+      depositPaid: true,
+      payments: payments
     });
+    
+    // Dynamic status handles room occupancy
   }
 
-  // 3b. Generate Currently Active, Booked, and Ready Rentals
-  // Active - Full Deposit
+  // 5b. Active One-Time (Harian/Mingguan)
+  for (let i = 0; i < 3; i++) {
+    const room = pickRoom();
+    occupiedRoomIds.add(room._id.toString());
+    const rt = insertedRoomTypes.find(t => t._id.toString() === room.roomTypeId.toString());
+    
+    const start = new Date(now.getTime() - (Math.floor(Math.random() * 5) * 86400000));
+    const end = new Date(start.getTime() + (Math.floor(Math.random() * 7) + 2) * 86400000); // 2-9 days stay
+    
+    // Price for one-time is based on priceDaily
+    const days = Math.ceil((end.getTime() - start.getTime()) / 86400000);
+    const amount = (rt.priceDaily || 100000) * days;
+
+    rentals.push({
+      transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      customerIds: [insertedCustomers[i + 5]._id],
+      roomId: room._id,
+      rentalType: 'One-Time',
+      rentalStartTime: start,
+      expectedReturnDate: end,
+      status: 'Active',
+      depositAmount: 500000,
+      depositPaid: true,
+      payments: [{
+        amount: amount + 500000,
+        date: start,
+        receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+      }]
+    });
+    // Dynamic status handles room occupancy
+  }
+
+  // 5b_1. GUARANTEED EDGE CASES
+  // Overdue Long-Stay (Tunggakan)
+  const roomOverdue = pickRoom(); occupiedRoomIds.add(roomOverdue._id.toString());
+  const rtOverdue = insertedRoomTypes.find(t => t._id.toString() === roomOverdue.roomTypeId.toString());
+  const startOverdue = new Date(now.getFullYear(), now.getMonth() - 2, 10);
+  const paidUntilOverdue = new Date(now.getFullYear(), now.getMonth() - 1, 10); // Paid until last month (Overdue)
+  
   rentals.push({
     transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-    customerId: insertedCustomers[0]._id,
-    roomId: insertedRooms[1]._id,
-    rentalStartTime: new Date(now.getTime() - 15 * 86400000), // Rented 15 days ago
-    expectedReturnDate: new Date(now.getTime() + 15 * 86400000), // Due in 15 days (1 month term)
-    depositAmount: insertedRooms[1].price,
+    customerIds: [insertedCustomers[2]._id],
+    roomId: roomOverdue._id,
+    rentalType: 'Long-Stay',
+    rentalStartTime: startOverdue,
+    paymentReminderDate: 10,
+    paidUntil: paidUntilOverdue,
+    status: 'Active',
+    depositAmount: rtOverdue?.price || 0,
     depositPaid: true,
-    payments: [{ amount: insertedRooms[1].price, date: new Date(now.getTime() - 1 * 86400000), receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` }],
-    status: 'Active'
+    payments: [{ amount: rtOverdue?.price || 0, date: startOverdue, receiptId: 'RCPT-OV1' }]
+  });
+  // Dynamic status handles room occupancy
+
+  // Overstay One-Time (Harian/Mingguan)
+  const roomOverstay = pickRoom(); occupiedRoomIds.add(roomOverstay._id.toString());
+  const rtOverstay = insertedRoomTypes.find(t => t._id.toString() === roomOverstay.roomTypeId.toString());
+  const startOverstay = new Date(now.getTime() - (10 * 86400000));
+  const endOverstay = new Date(startOverstay.getTime() + (3 * 86400000)); // Expected return was 7 days ago
+  
+  rentals.push({
+    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+    customerIds: [insertedCustomers[3]._id],
+    roomId: roomOverstay._id,
+    rentalType: 'One-Time',
+    rentalStartTime: startOverstay,
+    expectedReturnDate: endOverstay,
+    status: 'Active',
+    depositAmount: 500000,
+    depositPaid: true,
+    payments: [{ amount: 650000, date: startOverstay, receiptId: 'RCPT-OS1' }]
+  });
+  // Dynamic status handles room occupancy
+
+  // Unfinished Down Payment (Belum DP)
+  const roomNoDp = pickRoom(); occupiedRoomIds.add(roomNoDp._id.toString());
+  const rtNoDp = insertedRoomTypes.find(t => t._id.toString() === roomNoDp.roomTypeId.toString());
+  
+  rentals.push({
+    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+    customerIds: [insertedCustomers[4]._id],
+    roomId: roomNoDp._id,
+    rentalType: 'Long-Stay',
+    rentalStartTime: now,
+    paymentReminderDate: now.getDate(),
+    paidUntil: now, // Will be overridden or tracked upon DP
+    status: 'Booked', // Status is Booked until DP is paid
+    depositAmount: rtNoDp?.price || 0,
+    depositPaid: false, // NOT PAID
+    payments: []
+  });
+  // Dynamic status handles room occupancy
+
+  // 5b_2. FUTURE BOOKINGS (Timeline Edge Cases)
+  
+  // Future Booking (One-Time)
+  const roomFutureOneTime = pickRoom(); occupiedRoomIds.add(roomFutureOneTime._id.toString());
+  const rtFuture1 = insertedRoomTypes.find(t => t._id.toString() === roomFutureOneTime.roomTypeId.toString());
+  const futureStart1 = new Date(now.getTime() + (10 * 86400000)); // 10 days from now
+  const futureEnd1 = new Date(futureStart1.getTime() + (5 * 86400000)); // 5 days stay
+  
+  rentals.push({
+    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+    customerIds: [insertedCustomers[5]._id],
+    roomId: roomFutureOneTime._id,
+    rentalType: 'One-Time',
+    rentalStartTime: futureStart1,
+    expectedReturnDate: futureEnd1,
+    status: 'Booked', // Paid full, but still booked because not checked in yet
+    depositAmount: 500000,
+    depositPaid: true,
+    payments: [{ amount: (rtFuture1?.priceDaily || 100000) * 5 + 500000, date: now, receiptId: 'RCPT-FUT1' }]
   });
 
-  // Booked - Partial Deposit
+  // Future Booking (Long-Stay) - Partial DP
+  const roomFutureLongStay = pickRoom(); occupiedRoomIds.add(roomFutureLongStay._id.toString());
+  const rtFuture2 = insertedRoomTypes.find(t => t._id.toString() === roomFutureLongStay.roomTypeId.toString());
+  const futureStart2 = new Date(now.getTime() + (20 * 86400000)); // 20 days from now
+  
   rentals.push({
     transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-    customerId: insertedCustomers[2]._id,
-    roomId: insertedRooms[3]._id,
-    rentalStartTime: new Date(now.getTime() + 2 * 86400000), // Check in 2 days
-    expectedReturnDate: new Date(now.getTime() + 32 * 86400000), // 30 days later
-    depositAmount: insertedRooms[3].price,
+    customerIds: [insertedCustomers[6]._id],
+    roomId: roomFutureLongStay._id,
+    rentalType: 'Long-Stay',
+    rentalStartTime: futureStart2,
+    paymentReminderDate: futureStart2.getDate(),
+    paidUntil: futureStart2, // Not active yet
+    status: 'Booked',
+    depositAmount: rtFuture2?.price || 0,
     depositPaid: false,
-    payments: [{ amount: insertedRooms[3].price / 2, date: now, receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` }],
-    status: 'Booked'
+    payments: [{ amount: 500000, date: now, receiptId: 'RCPT-FUT2' }] // Only paid DP
   });
 
-  // Active - LATE (Past expected return date)
+  // Future Booking (One-Time) - NO DP AT ALL
+  const roomFutureNoDp = pickRoom(); occupiedRoomIds.add(roomFutureNoDp._id.toString());
+  const rtFuture3 = insertedRoomTypes.find(t => t._id.toString() === roomFutureNoDp.roomTypeId.toString());
+  const futureStart3 = new Date(now.getTime() + (12 * 86400000)); // 12 days from now
+  const futureEnd3 = new Date(futureStart3.getTime() + (3 * 86400000)); // 3 days stay
+  
   rentals.push({
     transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-    customerId: insertedCustomers[5]._id,
-    roomId: insertedRooms[2]._id,
-    rentalStartTime: new Date(now.getTime() - 35 * 86400000), // Rented 35 days ago
-    expectedReturnDate: new Date(now.getTime() - 5 * 86400000), // Due 5 days ago (Overdue)
-    depositAmount: insertedRooms[2].price,
-    depositPaid: true,
-    payments: [{ amount: insertedRooms[2].price, date: new Date(now.getTime() - 5 * 86400000), receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` }],
-    status: 'Active'
-  });
-
-  // Booked - Unpaid Deposit
-  rentals.push({
-    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-    customerId: insertedCustomers[1]._id,
-    roomId: insertedRooms[4]._id,
-    rentalStartTime: new Date(now.getTime() + 2 * 86400000), // To be picked up in 2 days
-    expectedReturnDate: new Date(now.getTime() + 5 * 86400000),
-    depositAmount: insertedRooms[4].price,
+    customerIds: [insertedCustomers[7]._id],
+    roomId: roomFutureNoDp._id,
+    rentalType: 'One-Time',
+    rentalStartTime: futureStart3,
+    expectedReturnDate: futureEnd3,
+    status: 'Booked', // Not checked in, NO DP
+    depositAmount: 500000,
     depositPaid: false,
-    payments: [],
-    status: 'Booked'
+    payments: [] // NO PAYMENT!
   });
 
-  // Ready - Prepared for pickup today
-  rentals.push({
-    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-    customerId: insertedCustomers[3]._id,
-    roomId: insertedRooms[0]._id,
-    rentalStartTime: now, // Pick up today
-    expectedReturnDate: new Date(now.getTime() + 3 * 86400000),
-    depositAmount: insertedRooms[0].price,
-    depositPaid: true,
-    payments: [{ amount: insertedRooms[0].price, date: now, receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` }],
-    status: 'Ready'
+  // 5c. One customer renting multiple rooms
+  const richCustomer = insertedCustomers[insertedCustomers.length - 1]; // Andi
+  const room1 = pickRoom(); occupiedRoomIds.add(room1._id.toString());
+  const room2 = pickRoom(); occupiedRoomIds.add(room2._id.toString());
+  const rt1 = insertedRoomTypes.find(t => t._id.toString() === room1.roomTypeId.toString());
+  const rt2 = insertedRoomTypes.find(t => t._id.toString() === room2.roomTypeId.toString());
+  
+  [ {r: room1, rt: rt1}, {r: room2, rt: rt2} ].forEach(({r, rt}) => {
+    const start = new Date(now.getFullYear(), now.getMonth(), 5);
+    const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 5);
+    rentals.push({
+      transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      customerIds: [richCustomer._id],
+      roomId: r._id,
+      rentalType: 'Long-Stay',
+      rentalStartTime: start,
+      paymentReminderDate: 5,
+      paidUntil: paidUntil,
+      status: 'Active',
+      depositAmount: rt.price,
+      depositPaid: true,
+      payments: [{
+        amount: rt.price,
+        date: start,
+        receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+      }]
+    });
   });
+  // Dynamic status handles room occupancy
 
-  // Active - Paid partially but has finished payment
-  rentals.push({
-    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-    customerId: insertedCustomers[4]._id,
-    roomId: insertedRooms[2]._id,
-    rentalStartTime: new Date(now.getTime() - 2 * 86400000),
-    expectedReturnDate: new Date(now.getTime() + 1 * 86400000),
-    depositAmount: insertedRooms[2].price,
-    depositPaid: true,
-    payments: [
-      { amount: insertedRooms[2].price / 2, date: new Date(now.getTime() - 4 * 86400000), receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` },
-      { amount: insertedRooms[2].price / 2, date: new Date(now.getTime() - 2 * 86400000), receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` }
-    ],
-    status: 'Active'
-  });
+  // 5d. Historical (Completed/Cancelled)
+  for (let i = 0; i < 15; i++) {
+    const room = insertedRooms[Math.floor(Math.random() * insertedRooms.length)];
+    const rt = insertedRoomTypes.find(t => t._id.toString() === room.roomTypeId.toString());
+    const c = insertedCustomers[Math.floor(Math.random() * insertedCustomers.length)];
+    
+    const isCancelled = i % 5 === 0;
+    const isLongStay = i % 2 === 0;
+    const start = new Date(now.getTime() - (Math.floor(Math.random() * 100) + 30) * 86400000);
+    
+    const rentObj: any = {
+      transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      customerIds: [c._id],
+      roomId: room._id,
+      rentalType: isLongStay ? 'Long-Stay' : 'One-Time',
+      rentalStartTime: start,
+      status: isCancelled ? 'Cancelled' : 'Completed',
+      depositAmount: rt.price,
+      depositPaid: !isCancelled,
+      payments: []
+    };
+
+    if (!isCancelled) {
+      const durationDays = isLongStay ? 90 : 5; // 3 months or 5 days
+      const end = new Date(start.getTime() + (durationDays * 86400000));
+      rentObj.rentalEndTime = end;
+      
+      if (isLongStay) {
+        rentObj.paidUntil = end;
+        rentObj.paymentReminderDate = start.getDate();
+        rentObj.payments.push({ amount: rt.price * 3, date: start, receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` });
+      } else {
+        rentObj.expectedReturnDate = end;
+        rentObj.payments.push({ amount: rt.price, date: start, receiptId: `RCPT-${Math.random().toString(36).substring(2, 9).toUpperCase()}` });
+      }
+    }
+    
+    rentals.push(rentObj);
+  }
+
+  // Randomly set some available rooms to Maintenance/Cleaning
+  for (let room of insertedRooms) {
+    if (!occupiedRoomIds.has(room._id.toString())) {
+       const rand = Math.random();
+       if (rand < 0.1) await Room.findByIdAndUpdate(room._id, { status: 'Cleaning' });
+       else if (rand < 0.2) await Room.findByIdAndUpdate(room._id, { status: 'Maintenance' });
+    }
+  }
 
   await RentalTransaction.insertMany(rentals);
-  console.log('Advanced Demo Data Successfully Seeded!');
+  console.log('Kosan Demo Data Successfully Seeded!');
 };

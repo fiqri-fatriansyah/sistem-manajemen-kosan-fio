@@ -5,25 +5,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const RentalTransaction_1 = __importDefault(require("../models/RentalTransaction"));
-const Kebaya_1 = __importDefault(require("../models/Room"));
+const Room_1 = __importDefault(require("../models/Room"));
 const Customer_1 = __importDefault(require("../models/Customer"));
 const Event_1 = __importDefault(require("../models/Event"));
 const router = (0, express_1.Router)();
 router.get('/stats', async (req, res) => {
     try {
-        const rentals = await RentalTransaction_1.default.find().populate('kebayaId');
+        const rentals = await RentalTransaction_1.default.find().populate('roomId');
         // Top 5 rented room
         const kebayaCounts = {};
         for (const r of rentals) {
-            if (r.kebayaId) {
-                const kId = r.kebayaId._id.toString();
+            if (r.roomId) {
+                const kId = r.roomId._id.toString();
                 kebayaCounts[kId] = (kebayaCounts[kId] || 0) + 1;
             }
         }
         const popSortedK = Object.entries(kebayaCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
         const topRooms = [];
         for (const [id, count] of popSortedK) {
-            const k = await Kebaya_1.default.findById(id);
+            const k = await Room_1.default.findById(id);
             if (k)
                 topRooms.push({ room: k, count });
         }
@@ -149,7 +149,7 @@ router.get('/due', async (req, res) => {
         const dueRentals = await RentalTransaction_1.default.find({
             status: 'Active',
             expectedReturnDate: { $lt: tomorrow }
-        }).populate('customerId kebayaId').sort({ expectedReturnDate: 1 });
+        }).populate('customerId roomId').sort({ expectedReturnDate: 1 });
         res.json(dueRentals);
     }
     catch (err) {

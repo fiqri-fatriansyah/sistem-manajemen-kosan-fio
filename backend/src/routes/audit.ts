@@ -14,8 +14,29 @@ const requirePin = (req: Request, res: Response, next: any) => {
 
 router.get('/', requirePin, async (req: Request, res: Response) => {
   try {
-    const logs = await AuditLog.find().sort({ timestamp: -1 });
-    res.json(logs);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = (req.query.search as string) || '';
+    
+    let query: any = {};
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      query = {
+        $or: [
+          { action: regex },
+          { entity: regex },
+          { details: regex }
+        ]
+      };
+    }
+    
+    const totalCount = await AuditLog.countDocuments(query);
+    const logs = await AuditLog.find(query)
+      .sort({ timestamp: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+      
+    res.json({ logs, totalPages: Math.ceil(totalCount / limit) });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -23,7 +44,21 @@ router.get('/', requirePin, async (req: Request, res: Response) => {
 
 router.get('/export/pdf', requirePin, async (req: Request, res: Response) => {
   try {
-    const logs = await AuditLog.find().sort({ timestamp: -1 });
+    const range = req.query.range as string;
+    let query: any = {};
+    let dateStr = 'Seluruh Waktu';
+    
+    if (range && range !== 'all') {
+      const days = parseInt(range);
+      if (!isNaN(days)) {
+        const fromDate = new Date();
+        fromDate.setDate(fromDate.getDate() - days);
+        query.timestamp = { $gte: fromDate };
+        dateStr = `${days} Hari Terakhir`;
+      }
+    }
+    
+    const logs = await AuditLog.find(query).sort({ timestamp: -1 });
     
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline; filename="Audit_Log.pdf"');
@@ -33,13 +68,18 @@ router.get('/export/pdf', requirePin, async (req: Request, res: Response) => {
 
     doc.fontSize(20).text('Sistem Manajemen Kosan Fio', { align: 'center' });
     doc.fontSize(14).text('Laporan Audit & Aktivitas Sistem', { align: 'center' });
-    doc.moveDown(2);
+    doc.fontSize(10).fillColor('gray').text(`Rentang Waktu: ${dateStr}`, { align: 'center' });
+    doc.fillColor('black').moveDown(2);
 
-    logs.forEach(log => {
-      doc.fontSize(10).font('Helvetica-Bold').text(`[${new Date(log.timestamp).toLocaleString('id-ID')}] ${log.action} ${log.entity}`);
-      doc.font('Helvetica').text(log.details);
-      doc.moveDown(0.5);
-    });
+    if (logs.length === 0) {
+      doc.text('Tidak ada aktivitas terekam pada rentang waktu ini.', { align: 'center' });
+    } else {
+      logs.forEach(log => {
+        doc.fontSize(10).font('Helvetica-Bold').text(`[${new Date(log.timestamp).toLocaleString('id-ID')}] ${log.action} ${log.entity}`);
+        doc.font('Helvetica').text(log.details);
+        doc.moveDown(0.5);
+      });
+    }
 
     doc.end();
   } catch (err: any) {

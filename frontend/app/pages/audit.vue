@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
       <h1 class="page-title">Audit Log</h1>
       <a href="http://localhost:3001/api/audit/export/pdf" target="_blank">
         <button class="btn" style="background: #c62828;">Print PDF Log</button>
@@ -30,7 +30,7 @@
             <td>{{ log.details }}</td>
           </tr>
           <tr v-if="logs.length === 0">
-            <td colspan="4" style="text-align: center; padding: 20px;">Tidak ada aktivitas terekam.</td>
+            <td colspan="4" style="text-align: center; padding: 1.25rem;">Tidak ada aktivitas terekam.</td>
           </tr>
         </tbody>
       </table>

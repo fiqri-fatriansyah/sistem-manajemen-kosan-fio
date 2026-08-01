@@ -13,3 +13,10 @@ The following ideas have been brainstormed for future implementation to further 
 ### 3. Financial Accounting (Laporan Arus Kas)
 - **Concept:** Expand the financial tracking beyond just revenue. Allow staff to input operational expenses (e.g., laundry costs, boutique rent, purchasing new room).
 - **Benefit:** The dashboard can automatically calculate Net Profit (Laba Bersih) instead of just Gross Income.
+
+## Future Kosan Business Features (To-Do)
+
+1. **Uang Jaminan / Deposit Kunci (Security Deposit)**: Track deposits held in escrow for damages/keys that must be refunded at checkout.
+2. **Biaya Tambahan (Add-ons / Utilities)**: Support extra monthly fees for items like AC usage, TVs, laundry, or extra parking.
+3. **Pengeluaran Operasional (Expense Tracking)**: Track Kosan expenses (electricity, water, internet, cleaning, repairs) to calculate Net Profit (Keuntungan Bersih).
+4. **Auto-Tagihan Bulanan (Recurring Invoice Reminders)**: Automatically send WhatsApp invoice reminders to Bulanan tenants 3 days before their next payment cycle.

@@ -11,11 +11,11 @@ mongoose.connect(process.env.MONGODB_URI).then(async () => {
   
   const allRentals = await RentalTransaction.find();
   const validRooms = await Room.find().distinct('_id');
-  const validKebayaIds = validRooms.map(id => id.toString());
+  const validRoomIds = validRooms.map(id => id.toString());
   
   let deletedRentals = 0;
   for (let r of allRentals) {
-    if (!r.kebayaId || !validKebayaIds.includes(r.kebayaId.toString())) {
+    if (!r.roomId || !validRoomIds.includes(r.roomId.toString())) {
       await RentalTransaction.findByIdAndDelete(r._id);
       deletedRentals++;
     }

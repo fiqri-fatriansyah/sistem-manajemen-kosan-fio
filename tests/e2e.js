@@ -49,7 +49,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customerId: customer._id,
-        kebayaId: room._id,
+        roomId: room._id,
         expectedReturnDate: tomorrow.toISOString(),
         depositAmount: 50000,
         depositPaid: false

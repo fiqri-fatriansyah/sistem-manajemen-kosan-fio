@@ -7,10 +7,10 @@ const router = Router();
 // Create a rental (rent out a room)
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { customerId, kebayaId, expectedReturnDate, depositAmount, depositPaid } = req.body;
+    const { customerId, roomId, expectedReturnDate, depositAmount, depositPaid } = req.body;
     
     // Check stock
-    const room = await Room.findById(kebayaId);
+    const room = await Room.findById(roomId);
     if (!room) return res.status(404).json({ error: 'Room not found' });
     if (room.availableStock <= 0) return res.status(400).json({ error: 'Out of stock' });
 
@@ -23,7 +23,7 @@ router.post('/', async (req: Request, res: Response) => {
     const rental = new RentalTransaction({ 
       transactionId,
       customerId, 
-      kebayaId,
+      roomId,
       expectedReturnDate,
       depositAmount,
       depositPaid
@@ -43,7 +43,7 @@ router.post('/:id/return', async (req: Request, res: Response) => {
     const rental = await RentalTransaction.findById(req.params.id);
     if (!rental) return res.status(404).json({ error: 'Rental not found' });
 
-    const room = await Room.findById(rental.kebayaId);
+    const room = await Room.findById(rental.roomId);
     if (room) {
       if (returnStatus === 'Laundry') {
         room.cleaningStock = (room.cleaningStock || 0) + 1;
@@ -79,7 +79,7 @@ router.post('/:id/return', async (req: Request, res: Response) => {
 // Get active rentals
 router.get('/active', async (req: Request, res: Response) => {
   try {
-    const rentals = await RentalTransaction.find({ status: 'Active' }).populate('customerId').populate('kebayaId');
+    const rentals = await RentalTransaction.find({ status: 'Active' }).populate('customerId').populate('roomId');
     res.json(rentals);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -89,7 +89,7 @@ router.get('/active', async (req: Request, res: Response) => {
 // Get all rentals
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const rentals = await RentalTransaction.find().populate('customerId').populate('kebayaId').sort({ createdAt: -1 });
+    const rentals = await RentalTransaction.find().populate('customerId').populate('roomId').sort({ createdAt: -1 });
     res.json(rentals);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

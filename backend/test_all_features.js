@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const Kebaya_1 = __importDefault(require("./src/models/Room"));
+const Room_1 = __importDefault(require("./src/models/Room"));
 const Customer_1 = __importDefault(require("./src/models/Customer"));
 const RentalTransaction_1 = __importDefault(require("./src/models/RentalTransaction"));
 const AuditLog_1 = __importDefault(require("./src/models/AuditLog"));
@@ -23,7 +23,7 @@ async function runTests() {
         await mongoose_1.default.connection.collection('auditlogs').deleteMany({});
         // 1. Test Room Creation
         console.log('1. Testing Room Creation...');
-        const room = await Kebaya_1.default.create({
+        const room = await Room_1.default.create({
             tipeKamar: 'Test Room',
             fasilitas: 'Merah',
             price: 150000,
@@ -46,7 +46,7 @@ async function runTests() {
         const rental = await RentalTransaction_1.default.create({
             transactionId: 'TRX-TEST-001',
             customerId: customer._id,
-            kebayaId: room._id,
+            roomId: room._id,
             rentalDate: new Date(),
             expectedReturnDate: expectedReturn,
             status: 'Active',

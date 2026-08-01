@@ -5,14 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const RentalTransaction_1 = __importDefault(require("../models/RentalTransaction"));
-const Kebaya_1 = __importDefault(require("../models/Room"));
+const Room_1 = __importDefault(require("../models/Room"));
 const router = (0, express_1.Router)();
 // Create a rental (rent out a room)
 router.post('/', async (req, res) => {
     try {
-        const { customerId, kebayaId, expectedReturnDate, depositAmount, depositPaid } = req.body;
+        const { customerId, roomId, expectedReturnDate, depositAmount, depositPaid } = req.body;
         // Check stock
-        const room = await Kebaya_1.default.findById(kebayaId);
+        const room = await Room_1.default.findById(roomId);
         if (!room)
             return res.status(404).json({ error: 'Room not found' });
         if (room.availableStock <= 0)
@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
         const rental = new RentalTransaction_1.default({
             transactionId,
             customerId,
-            kebayaId,
+            roomId,
             expectedReturnDate,
             depositAmount,
             depositPaid
@@ -44,7 +44,7 @@ router.post('/:id/return', async (req, res) => {
         const rental = await RentalTransaction_1.default.findById(req.params.id);
         if (!rental)
             return res.status(404).json({ error: 'Rental not found' });
-        const room = await Kebaya_1.default.findById(rental.kebayaId);
+        const room = await Room_1.default.findById(rental.roomId);
         if (room) {
             if (returnStatus === 'Laundry') {
                 room.cleaningStock = (room.cleaningStock || 0) + 1;
@@ -79,7 +79,7 @@ router.post('/:id/return', async (req, res) => {
 // Get active rentals
 router.get('/active', async (req, res) => {
     try {
-        const rentals = await RentalTransaction_1.default.find({ status: 'Active' }).populate('customerId').populate('kebayaId');
+        const rentals = await RentalTransaction_1.default.find({ status: 'Active' }).populate('customerId').populate('roomId');
         res.json(rentals);
     }
     catch (err) {
@@ -89,7 +89,7 @@ router.get('/active', async (req, res) => {
 // Get all rentals
 router.get('/', async (req, res) => {
     try {
-        const rentals = await RentalTransaction_1.default.find().populate('customerId').populate('kebayaId').sort({ createdAt: -1 });
+        const rentals = await RentalTransaction_1.default.find().populate('customerId').populate('roomId').sort({ createdAt: -1 });
         res.json(rentals);
     }
     catch (err) {

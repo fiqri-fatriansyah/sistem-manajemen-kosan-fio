@@ -19,6 +19,8 @@ export const useApi = () => {
 
   return {
     getRooms: () => fetchApi('/rooms'),
+    getRoomTypes: () => fetchApi('/rooms/types'),
+    getFeatureTags: () => fetchApi('/rooms/features'),
     getCustomers: () => fetchApi('/customers'),
     getActiveRentals: () => fetchApi('/rentals/active'),
     getEvents: () => fetchApi('/events'),

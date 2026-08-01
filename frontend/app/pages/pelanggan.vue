@@ -2,13 +2,13 @@
   <div>
     <h1 class="page-title">Daftar Pelanggan</h1>
     <div class="material-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <h2>Pelanggan</h2>
         <button class="btn" @click="showForm = true">Tambah Pelanggan</button>
       </div>
 
-      <div v-if="showForm" style="margin-bottom: 20px; padding: 15px; border: 1px solid var(--surface-border); border-radius: 8px;">
-        <h3 style="margin-bottom: 10px;">{{ isEditing ? 'Edit Pelanggan' : 'Tambah Pelanggan Baru' }}</h3>
+      <div v-if="showForm" style="margin-bottom: 1.25rem; padding: 0.9375rem; border: 1px solid var(--surface-border); border-radius: 0.5rem;">
+        <h3 style="margin-bottom: 0.625rem;">{{ isEditing ? 'Edit Pelanggan' : 'Tambah Pelanggan Baru' }}</h3>
         <label>Nama Pelanggan *</label>
         <input v-model="form.name" class="input" />
         <label>Telephone *</label>
@@ -18,7 +18,7 @@
         <label>Email (Opsional)</label>
         <input v-model="form.email" type="email" class="input" />
         <button class="btn" @click="saveCustomer">{{ isEditing ? 'Simpan Perubahan' : 'Simpan' }}</button>
-        <button class="btn" @click="cancelEdit" style="background: #e0e0e0; color: #000; margin-left: 10px;">Batal</button>
+        <button class="btn" @click="cancelEdit" style="background: #e0e0e0; color: #000; margin-left: 0.625rem;">Batal</button>
       </div>
 
       <div v-if="pending">Memuat...</div>
@@ -42,27 +42,27 @@
               <td>{{ c.address || '-' }}</td>
               <td>{{ c.email || '-' }}</td>
               <td>
-                <button class="btn" style="padding: 2px 8px; font-size: 0.8rem; background: var(--primary-hover);" @click.stop="toggleRow(c._id)">
+                <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8rem; background: var(--primary-hover);" @click.stop="toggleRow(c._id)">
                   {{ expandedRow === c._id ? 'Tutup' : 'Lihat Sewa' }}
                 </button>
               </td>
               <td>
-                <button class="btn" style="padding: 2px 8px; font-size: 0.8rem; background: #f39c12;" @click.stop="editCustomer(c)">Edit</button>
-                <button class="btn" style="padding: 2px 8px; font-size: 0.8rem; margin-left: 5px; background: var(--danger);" @click.stop="deleteCustomer(c._id)">Hilangkan</button>
+                <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8rem; background: #f39c12;" @click.stop="editCustomer(c)">Edit</button>
+                <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8rem; margin-left: 0.3125rem; background: var(--danger);" @click.stop="deleteCustomer(c._id)">Hilangkan</button>
               </td>
             </tr>
             <tr v-if="expandedRow === c._id">
-              <td colspan="5" style="background: #fafafa; padding: 15px; border-bottom: 1px solid var(--surface-border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+              <td colspan="5" style="background: #fafafa; padding: 0.9375rem; border-bottom: 1px solid var(--surface-border); box-shadow: inset 0 0.125rem 0.25rem rgba(0,0,0,0.05);">
                 <div v-if="getRentalsForCustomer(c._id).length > 0">
-                  <h4 style="margin-bottom: 10px; color: var(--primary-color);">Daftar Room yang Sedang Disewa:</h4>
-                  <ul style="padding-left: 20px; font-size: 0.9rem;">
-                    <li v-for="r in getRentalsForCustomer(c._id)" :key="r._id" style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                      <img v-if="r.kebayaId?.imageUrl" :src="'http://localhost:3001' + r.kebayaId.imageUrl" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;" />
-                      <div v-else style="width: 30px; height: 30px; background: #eee; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.6em; color: #999;">No Img</div>
+                  <h4 style="margin-bottom: 0.625rem; color: var(--primary-color);">Daftar Room yang Sedang Disewa:</h4>
+                  <ul style="padding-left: 1.25rem; font-size: 0.9rem;">
+                    <li v-for="r in getRentalsForCustomer(c._id)" :key="r._id" style="margin-bottom: 0.625rem; display: flex; align-items: center; gap: 0.625rem;">
+                      <img v-if="r.roomId?.imageUrl" :src="'http://localhost:3001' + r.roomId.imageUrl" style="width: 1.875rem; height: 1.875rem; border-radius: 0.25rem; object-fit: cover;" />
+                      <div v-else style="width: 1.875rem; height: 1.875rem; background: #eee; border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; font-size: 0.6em; color: #999;">No Img</div>
                       <div>
-                        <strong>{{ r.kebayaId.tipeKamar }} ({{ r.kebayaId.fasilitas }})</strong> - 
+                        <strong>{{ r.roomId.tipeKamar }} ({{ r.roomId.fasilitas }})</strong> - 
                         <em>Jatuh Tempo: {{ new Date(r.expectedReturnDate).toLocaleDateString('id-ID') }}</em>
-                        <span v-if="new Date(r.expectedReturnDate) < new Date()" style="color: red; font-weight: bold; margin-left: 10px;">[TELAT]</span>
+                        <span v-if="new Date(r.expectedReturnDate) < new Date()" style="color: red; font-weight: bold; margin-left: 0.625rem;">[TELAT]</span>
                       </div>
                     </li>
                   </ul>
@@ -74,27 +74,27 @@
             </tr>
           </template>
           <tr v-if="customers.length === 0">
-            <td colspan="6" style="text-align: center; padding: 20px">Belum ada data pelanggan</td>
+            <td colspan="6" style="text-align: center; padding: 1.25rem">Belum ada data pelanggan</td>
           </tr>
         </tbody>
         </table>
       </div>
 
       <!-- Pagination -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.9375rem;">
         <div style="font-size: 0.9em;">
           Tampilkan: 
-          <select v-model="itemsPerPage" class="input" style="width: auto; padding: 2px 5px; margin: 0; display: inline-block;" @change="currentPage = 1">
+          <select v-model="itemsPerPage" class="input" style="width: auto; padding: 0.125rem 0.3125rem; margin: 0; display: inline-block;" @change="currentPage = 1">
             <option :value="10">10</option>
             <option :value="25">25</option>
             <option :value="50">50</option>
             <option :value="100">100</option>
           </select>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center; font-size: 0.9em;">
-          <button class="btn" :disabled="currentPage === 1" @click="currentPage--" style="background: #e0e0e0; color: #333; padding: 2px 10px;">&lt; Prev</button>
+        <div style="display: flex; gap: 0.625rem; align-items: center; font-size: 0.9em;">
+          <button class="btn" :disabled="currentPage === 1" @click="currentPage--" style="background: #e0e0e0; color: #333; padding: 0.125rem 0.625rem;">&lt; Prev</button>
           <span>Halaman {{ currentPage }} dari {{ totalPages || 1 }}</span>
-          <button class="btn" :disabled="currentPage >= totalPages || totalPages === 0" @click="currentPage++" style="background: #e0e0e0; color: #333; padding: 2px 10px;">Next &gt;</button>
+          <button class="btn" :disabled="currentPage >= totalPages || totalPages === 0" @click="currentPage++" style="background: #e0e0e0; color: #333; padding: 0.125rem 0.625rem;">Next &gt;</button>
         </div>
       </div>
     </div>
@@ -217,4 +217,4 @@ const deleteCustomer = async (id: string) => {
 
 onMounted(fetchData);
 </script>
-<style scoped>label { font-size: 0.9em; font-weight: 500; display: block; margin-bottom: 5px; color: var(--text-muted); }</style>
+<style scoped>label { font-size: 0.9em; font-weight: 500; display: block; margin-bottom: 0.3125rem; color: var(--text-muted); }</style>

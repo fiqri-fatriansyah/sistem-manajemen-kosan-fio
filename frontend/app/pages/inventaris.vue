@@ -1,162 +1,236 @@
 <template>
   <div>
-    <h1 class="page-title">Inventaris Room</h1>
+    <h1 class="page-title">Inventaris Room & Tipe Kosan</h1>
     
-    <div class="material-card" style="margin-bottom: 20px;">
-      <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between;">
-        <input type="text" v-model="searchQuery" class="input" placeholder="Cari Jenis atau Warna..." style="max-width: 400px; margin-bottom: 0;" />
-        <button class="btn" @click="showForm = true" style="background: var(--primary-color);">+ Tambah Room</button>
+    <div class="material-card" style="margin-bottom: 1.25rem;">
+      <div style="display: flex; gap: 0.9375rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+        <div style="display: flex; gap: 0.625rem; align-items: center; flex: 1; min-width: 18.75rem;">
+          <input type="text" v-model="searchQuery" class="input" placeholder="Cari Tipe, No. Room, Fasilitas, atau Penyewa..." style="flex: 1; max-width: 25rem; margin-bottom: 0;" />
+          <button class="btn" style="background: #34495e; padding: 0.3125rem 0.625rem; font-size: 0.9em;" @click="expandAll" title="Buka Semua">Buka Semua</button>
+          <button class="btn" style="background: #7f8c8d; padding: 0.3125rem 0.625rem; font-size: 0.9em;" @click="collapseAll" title="Tutup Semua">Tutup Semua</button>
+        </div>
+        <div style="display: flex; gap: 0.625rem;">
+          <button class="btn" @click="openRoomTypeForm(null)" style="background: var(--primary-color);">+ Tambah Tipe Baru</button>
+        </div>
       </div>
     </div>
 
-    <!-- Add / Edit Form -->
-    <div v-if="showForm" class="material-card" style="margin-bottom: 20px; border-left: 4px solid var(--primary-color);">
-      <h3 style="margin-bottom: 15px;">{{ isEditing ? 'Edit Room' : 'Tambah Room Baru' }}</h3>
+    <!-- Add / Edit RoomType Form -->
+    <div v-if="showRoomTypeForm" class="material-card" style="margin-bottom: 1.25rem; border-left: 0.25rem solid var(--primary-color);">
+      <h3 style="margin-bottom: 0.9375rem;">{{ isEditingRT ? 'Edit Tipe Room' : 'Tambah Tipe Baru' }}</h3>
       
-      <label style="display: block; font-size: 1em; margin-bottom: 5px;">Jenis</label>
-      <input v-model="form.tipeKamar" class="input" placeholder="Contoh: Kutubaru" />
+      <label class="form-label">Nama Tipe (Misal: VIP, Standard)</label>
+      <input v-model="rtForm.name" class="input" placeholder="VIP Room" />
       
-      <label style="display: block; font-size: 1em; margin-bottom: 5px;">Warna</label>
-      <input v-model="form.fasilitas" class="input" placeholder="Contoh: Putih Tulang" />
+      <label class="form-label">Harga Sewa Bulanan (Rp)</label>
+      <input type="number" min="0" v-model="rtForm.price" class="input" placeholder="1500000" />
       
-      <label style="display: block; font-size: 1em; margin-bottom: 5px;">Harga Sewa (Rp)</label>
-      <input type="number" v-model="form.price" class="input" placeholder="100000" />
+      <label class="form-label">Harga Sewa Harian (Rp)</label>
+      <input type="number" min="0" v-model="rtForm.priceDaily" class="input" placeholder="150000" />
       
-      <label style="display: block; font-size: 1em; margin-bottom: 5px;">Total Stok</label>
-      <input type="number" v-model="form.totalStock" class="input" placeholder="5" />
+      <label class="form-label">Fasilitas (Pilih atau Ketik Baru)</label>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.625rem; margin-bottom: 0.625rem;">
+        <label v-for="tag in availableTags" :key="tag.name" style="display: flex; align-items: center; gap: 0.3125rem; cursor: pointer; background: #eee; padding: 0.3125rem 0.625rem; border-radius: 1.25rem;">
+          <input type="checkbox" :value="tag.name" v-model="rtForm.features" /> {{ tag.name }}
+        </label>
+      </div>
+      <div style="display: flex; gap: 0.625rem; margin-bottom: 0.9375rem; max-width: 18.75rem;">
+        <input v-model="newTagInput" class="input" style="margin-bottom: 0;" placeholder="Fasilitas Baru..." @keyup.enter="addNewTag" />
+        <button class="btn" style="padding: 0.3125rem 0.625rem;" @click="addNewTag">Tambah</button>
+      </div>
 
-      <label style="display: block; font-size: 1em; margin-bottom: 5px;">Gambar Room (Opsional)</label>
-      <input type="file" class="input" accept="image/*" @change="handleFileUpload" style="padding: 10px;" />
+      <label class="form-label">Gambar Tipe Room (Opsional)</label>
+      <input type="file" class="input" accept="image/*" @change="handleRTImageUpload" style="padding: 0.625rem;" />
       
-      <div v-if="imagePreview" style="margin-top: 10px; margin-bottom: 10px;">
-        <label style="display: block; font-size: 1em; margin-bottom: 5px;">Pratinjau Gambar:</label>
-        <img :src="imagePreview" alt="Pratinjau Room" style="max-width: 300px; max-height: 300px; border-radius: 8px; border: 1px solid var(--surface-border); object-fit: cover;" />
+      <div v-if="rtImagePreview" style="margin-top: 0.625rem; margin-bottom: 0.625rem;">
+        <img :src="rtImagePreview" style="max-width: 18.75rem; max-height: 12.5rem; border-radius: 0.5rem; object-fit: cover;" />
       </div>
       
-      <div style="margin-top: 15px;">
-        <button class="btn" @click="saveKebaya">{{ isEditing ? 'Simpan Perubahan' : 'Simpan Baru' }}</button>
-        <button class="btn" @click="cancelEdit" style="background: #e0e0e0; color: #000; margin-left: 10px;">Batal</button>
+      <div style="margin-top: 0.9375rem;">
+        <button class="btn" @click="saveRoomType">{{ isEditingRT ? 'Simpan Perubahan' : 'Simpan Baru' }}</button>
+        <button class="btn" @click="showRoomTypeForm = false" style="background: #e0e0e0; color: #000; margin-left: 0.625rem;">Batal</button>
       </div>
     </div>
 
+    <!-- Add / Edit Room Form -->
+    <div v-if="showRoomForm" class="material-card" style="margin-bottom: 1.25rem; border-left: 0.25rem solid #27ae60;">
+      <h3 style="margin-bottom: 0.9375rem;">{{ isEditingRoom ? 'Edit Room' : 'Tambah Ruangan Baru' }}</h3>
+      
+      <label class="form-label">Tipe Room</label>
+      <select v-model="rForm.roomTypeId" class="input" @change="onRoomTypeChangeForRoom">
+        <option value="" disabled>Pilih Tipe Room...</option>
+        <option v-for="rt in roomTypes" :key="rt._id" :value="rt._id">{{ rt.name }} (Rp {{ formatRupiah(rt.price) }})</option>
+      </select>
+      
+      <label class="form-label">Nomor/ID Room</label>
+      <input v-model="rForm.roomNumber" class="input" placeholder="A1, B2, 101, dll." />
+
+      <label class="form-label">Harga Bulanan Khusus (Opsional)</label>
+      <input type="number" min="0" v-model="rForm.priceMonthly" class="input" placeholder="Kosongkan untuk ikut harga tipe..." />
+
+      <label class="form-label">Harga Harian Khusus (Opsional)</label>
+      <input type="number" min="0" v-model="rForm.priceDaily" class="input" placeholder="Kosongkan untuk ikut harga tipe..." />
+
+      <label class="form-label">Fasilitas Khusus Room (Turunan dari Tipe)</label>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.625rem; margin-bottom: 0.625rem;">
+        <label v-for="tag in availableTags" :key="tag.name" style="display: flex; align-items: center; gap: 0.3125rem; cursor: pointer; background: #e8f5e9; padding: 0.3125rem 0.625rem; border-radius: 1.25rem;">
+          <input type="checkbox" :value="tag.name" v-model="rForm.features" /> {{ tag.name }}
+        </label>
+      </div>
+      <div style="display: flex; gap: 0.625rem; margin-bottom: 0.9375rem; max-width: 18.75rem;">
+        <input v-model="newTagInput" class="input" style="margin-bottom: 0;" placeholder="Fasilitas Baru..." @keyup.enter="addNewTag" />
+        <button class="btn" style="padding: 0.3125rem 0.625rem;" @click="addNewTag">Tambah</button>
+      </div>
+
+      <label class="form-label">Status Awal</label>
+      <select v-model="rForm.status" class="input">
+        <option value="Available">Available (Tersedia)</option>
+        <option value="Cleaning">Cleaning (Dibersihkan)</option>
+        <option value="Maintenance">Maintenance (Perbaikan)</option>
+      </select>
+
+      <label class="form-label">Gambar Room Spesifik (Opsional)</label>
+      <input type="file" class="input" accept="image/*" @change="handleRImageUpload" style="padding: 0.625rem;" />
+      
+      <div v-if="rImagePreview" style="margin-top: 0.625rem; margin-bottom: 0.625rem;">
+        <img :src="rImagePreview" style="max-width: 18.75rem; max-height: 12.5rem; border-radius: 0.5rem; object-fit: cover;" />
+      </div>
+      
+      <div style="margin-top: 0.9375rem;">
+        <button class="btn" @click="saveRoom">{{ isEditingRoom ? 'Simpan Perubahan' : 'Simpan Baru' }}</button>
+        <button class="btn" @click="showRoomForm = false" style="background: #e0e0e0; color: #000; margin-left: 0.625rem;">Batal</button>
+      </div>
+    </div>
+
+    <!-- Inventory Display -->
     <div v-if="pending">Memuat...</div>
-    <div v-else class="material-card">
-      <div style="overflow-x: auto; width: 100%;">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Gambar</th>
-              <th @click="sortByCol('tipeKamar')" style="cursor: pointer;">Jenis <span v-if="sortKey === 'tipeKamar'">{{ sortDesc ? '↓' : '↑' }}</span></th>
-              <th @click="sortByCol('fasilitas')" style="cursor: pointer;">Warna <span v-if="sortKey === 'fasilitas'">{{ sortDesc ? '↓' : '↑' }}</span></th>
-              <th @click="sortByCol('price')" style="cursor: pointer;">Harga Sewa Dasar <span v-if="sortKey === 'price'">{{ sortDesc ? '↓' : '↑' }}</span></th>
-              <th @click="sortByCol('totalStock')" style="cursor: pointer;">Total Stok <span v-if="sortKey === 'totalStock'">{{ sortDesc ? '↓' : '↑' }}</span></th>
-              <th @click="sortByCol('availableStock')" style="cursor: pointer;">Tersedia <span v-if="sortKey === 'availableStock'">{{ sortDesc ? '↓' : '↑' }}</span></th>
-              <th>Laundry / Perbaikan</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="k in paginatedRooms" :key="k._id">
-              <tr style="cursor: pointer; transition: background 0.2s;" @click="toggleRow(k._id)" :style="expandedRow === k._id ? 'background: #f0f0f0;' : ''">
-                <td>
-                  <img v-if="k.imageUrl" :src="'http://localhost:3001' + k.imageUrl" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid var(--surface-border);" />
-                  <div v-else style="width: 150px; height: 150px; background: #eee; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1em; color: #999; border: 2px solid var(--surface-border);">No Img</div>
-                </td>
-                <td>{{ k.tipeKamar }}</td>
-                <td>{{ k.fasilitas }}</td>
-                <td>{{ formatRupiah(k.price) }}</td>
-                <td>
-                  <button @click.stop="adjustStock(k, -1)" style="border:none; background:#eee; cursor:pointer; padding: 2px 6px;">-</button>
-                  <span style="margin: 0 5px;">{{ k.totalStock }}</span>
-                  <button @click.stop="adjustStock(k, 1)" style="border:none; background:#eee; cursor:pointer; padding: 2px 6px;">+</button>
-                </td>
-                <td>
-                  <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-start;">
-                    <span :style="k.availableStock > 0 ? 'color: var(--success); font-weight: bold; font-size: 1.1em;' : 'color: var(--danger); font-weight: bold; font-size: 1.1em;'">
-                      {{ k.availableStock }}
-                    </span>
-                    <div v-if="k.availableStock > 0" style="display: flex; gap: 5px;">
-                      <button class="btn" style="background: #2980b9; padding: 2px 5px; font-size: 1em;" @click.stop="openTransfer(k._id, 'available', 'laundry', k.availableStock)">➔ Laundry</button>
-                      <button class="btn" style="background: #e67e22; padding: 2px 5px; font-size: 1em;" @click.stop="openTransfer(k._id, 'available', 'maintenance', k.availableStock)">➔ Perbaikan</button>
-                    </div>
-                    <div v-if="transferActive.kebayaId === k._id && transferActive.from === 'available'" style="display: flex; gap: 5px; margin-top: 5px; background: #f9f9f9; padding: 5px; border-radius: 4px; border: 1px solid #ddd;" @click.stop>
-                      <span style="font-size: 1em; align-self: center;">Ke {{ transferActive.to === 'laundry' ? 'Laundry' : 'Perbaikan' }}:</span>
-                      <input type="number" v-model="transferAmount" :max="transferActive.max" min="1" class="input" style="width: 50px; padding: 2px; margin: 0; font-size: 1em;" />
-                      <button class="btn" style="background: var(--success); padding: 2px 5px; font-size: 1em;" @click.stop="confirmTransfer">OK</button>
-                      <button class="btn" style="background: #ccc; padding: 2px 5px; font-size: 1em; color: black;" @click.stop="cancelTransfer">X</button>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div v-if="k.cleaningStock > 0" style="margin-bottom: 5px; display: flex; flex-direction: column; gap: 5px;">
-                    <span style="color: #2980b9; font-size: 1em; font-weight: bold;">{{ k.cleaningStock }} di Laundry</span>
-                    <button class="btn" style="background: var(--success); padding: 2px 5px; font-size: 1em; align-self: flex-start;" @click.stop="openTransfer(k._id, 'laundry', 'available', k.cleaningStock)">➔ Tersedia</button>
-                    <div v-if="transferActive.kebayaId === k._id && transferActive.from === 'laundry'" style="display: flex; gap: 5px; background: #f9f9f9; padding: 5px; border-radius: 4px; border: 1px solid #ddd;" @click.stop>
-                      <input type="number" v-model="transferAmount" :max="transferActive.max" min="1" class="input" style="width: 50px; padding: 2px; margin: 0; font-size: 1em;" />
-                      <button class="btn" style="background: var(--success); padding: 2px 5px; font-size: 1em;" @click.stop="confirmTransfer">OK</button>
-                      <button class="btn" style="background: #ccc; padding: 2px 5px; font-size: 1em; color: black;" @click.stop="cancelTransfer">X</button>
-                    </div>
-                  </div>
-                  <div v-if="k.maintenanceStock > 0" style="display: flex; flex-direction: column; gap: 5px;">
-                    <span style="color: #e67e22; font-size: 1em; font-weight: bold;">{{ k.maintenanceStock }} di Perbaikan</span>
-                    <button class="btn" style="background: var(--success); padding: 2px 5px; font-size: 1em; align-self: flex-start;" @click.stop="openTransfer(k._id, 'maintenance', 'available', k.maintenanceStock)">➔ Tersedia</button>
-                    <div v-if="transferActive.kebayaId === k._id && transferActive.from === 'maintenance'" style="display: flex; gap: 5px; background: #f9f9f9; padding: 5px; border-radius: 4px; border: 1px solid #ddd;" @click.stop>
-                      <input type="number" v-model="transferAmount" :max="transferActive.max" min="1" class="input" style="width: 50px; padding: 2px; margin: 0; font-size: 1em;" />
-                      <button class="btn" style="background: var(--success); padding: 2px 5px; font-size: 1em;" @click.stop="confirmTransfer">OK</button>
-                      <button class="btn" style="background: #ccc; padding: 2px 5px; font-size: 1em; color: black;" @click.stop="cancelTransfer">X</button>
-                    </div>
-                  </div>
-                  <span v-if="!k.cleaningStock && !k.maintenanceStock" style="color: var(--text-muted); font-size: 1em;">-</span>
-                </td>
-                <td>
-                  <button class="btn" style="padding: 2px 8px; font-size: 1em; background: var(--primary-hover);" @click.stop="toggleRow(k._id)">
-                    {{ expandedRow === k._id ? 'Tutup' : 'Penyewa' }}
-                  </button>
-                  <button class="btn" style="padding: 2px 8px; font-size: 1em; margin-left: 5px; background: #f39c12;" @click.stop="editKebaya(k)">Edit</button>
-                  <button class="btn" style="padding: 2px 8px; font-size: 1em; margin-left: 5px; background: var(--danger);" @click.stop="deleteKebaya(k._id)">Hapus</button>
-                </td>
-              </tr>
-              <!-- Expandable Row Content -->
-              <tr v-if="expandedRow === k._id">
-                <td colspan="8" style="background: #fafafa; padding: 15px; border-bottom: 1px solid var(--surface-border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                  <div v-if="getRentalsForKebaya(k._id).length > 0">
-                    <h4 style="margin-bottom: 10px; color: var(--primary-color);">Sedang Disewa Oleh:</h4>
-                    <ul style="padding-left: 20px; font-size: 1em;">
-                      <li v-for="r in getRentalsForKebaya(k._id)" :key="r._id" style="margin-bottom: 5px; cursor: pointer; color: #2980b9; transition: color 0.2s;" @mouseover="($event.target as HTMLElement).style.textDecoration = 'underline'" @mouseleave="($event.target as HTMLElement).style.textDecoration = 'none'" @click="router.push({ path: '/penyewaan', query: { search: r.transactionId } })">
-                        <strong>{{ r.customerId.name }}</strong> ({{ r.customerId.telephone }}) - 
-                        <em>Jatuh Tempo: {{ new Date(r.expectedReturnDate).toLocaleDateString('id-ID') }}</em>
-                        <span v-if="new Date(r.expectedReturnDate) < new Date()" style="color: red; font-weight: bold; margin-left: 10px;">[TELAT]</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div v-else style="color: var(--text-muted); font-size: 1em; font-style: italic;">
-                    Tidak ada stok yang sedang disewa saat ini.
-                  </div>
-                </td>
-              </tr>
-            </template>
-            <tr v-if="filteredAndSortedRooms.length === 0">
-              <td colspan="8" style="text-align: center; padding: 20px;">Tidak ada data yang cocok dengan pencarian.</td>
-            </tr>
-          </tbody>
-        </table>
+    <div v-else>
+      <div v-if="filteredRoomTypes.length === 0" class="material-card" style="text-align: center; padding: 1.875rem;">
+        Tidak ada data yang cocok dengan pencarian.
       </div>
 
-      <!-- Pagination -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+      <div v-for="rt in paginatedRoomTypes" :key="rt._id" class="material-card" style="margin-bottom: 1.25rem; padding: 0; overflow: hidden;">
+        <!-- RoomType Header (Collapsible) -->
+        <div style="background: #f8f9fa; padding: 0.9375rem 1.25rem; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between; cursor: pointer;" @click="toggleRT(rt._id)">
+          <div style="display: flex; gap: 1.25rem; align-items: center;">
+            <img v-if="rt.imageUrl" :src="'http://localhost:3001' + rt.imageUrl" style="width: 5rem; height: 5rem; object-fit: cover; border-radius: 0.5rem;" />
+            <div v-else style="width: 5rem; height: 5rem; background: #eee; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 0.8em; color: #999;">No Img</div>
+            
+            <div>
+              <h2 style="margin: 0; color: var(--primary-color);">{{ rt.name }}</h2>
+              <div style="color: var(--text-muted); font-size: 0.9em; margin-top: 0.3125rem;">
+                <span v-for="feat in rt.features" :key="feat" style="background: #e0e0e0; padding: 0.125rem 0.5rem; border-radius: 0.75rem; margin-right: 0.3125rem; font-size: 0.85em;">{{ feat }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div style="text-align: right;">
+              <div style="font-weight: bold; font-size: 1.1em;">Rp {{ formatRupiah(rt.price) }} /Bulan</div>
+              <div style="font-weight: bold; font-size: 0.9em; color: #27ae60;">Rp {{ formatRupiah(rt.priceDaily) }} /Hari</div>
+              <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 0.3125rem;">
+                Tersedia: <strong>{{ getAvailableCount(rt._id) }}</strong> / Total: {{ getRoomsByType(rt._id).length }}
+              </div>
+            </div>
+            <button class="btn" style="background: #f39c12; padding: 0.3125rem 0.625rem;" @click.stop="openRoomTypeForm(rt)">Edit Tipe</button>
+            <span style="font-size: 1.5em; color: #888;">
+              {{ expandedRTs.includes(rt._id) ? '▲' : '▼' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Room Items -->
+        <div v-if="expandedRTs.includes(rt._id)" style="padding: 1.25rem; background: #fff;">
+          <div style="margin-bottom: 0.9375rem; display: flex; justify-content: flex-end;">
+            <button class="btn" style="background: var(--primary-color);" @click.stop="openRoomForm(null, rt._id)">+ Tambah Ruangan Baru</button>
+          </div>
+          <div style="overflow-x: auto; width: 100%;">
+            <table class="table" style="margin: 0; min-width: 40rem;">
+            <thead>
+              <tr>
+                <th style="width: 5rem;">Gambar</th>
+                <th>No. Room</th>
+                <th>Fasilitas Khusus</th>
+                <th>Status & Aksi</th>
+                <th>Penyewa Saat Ini</th>
+                <th style="width: 9.375rem;">Opsi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="room in getFilteredRoomsByType(rt._id)" :key="room._id">
+                <td>
+                  <img v-if="room.imageUrl || rt.imageUrl" :src="'http://localhost:3001' + (room.imageUrl || rt.imageUrl)" style="width: 3.75rem; height: 3.75rem; object-fit: cover; border-radius: 0.25rem;" />
+                  <div v-else style="width: 3.75rem; height: 3.75rem; background: #f5f5f5; border-radius: 0.25rem;"></div>
+                </td>
+                <td style="font-weight: bold; font-size: 1.1em;">
+                  {{ room.roomNumber }}
+                  <div style="font-size: 0.75em; font-weight: normal; margin-top: 0.3125rem; padding: 0.25rem; border-radius: 0.25rem;" :style="room.priceMonthly || room.priceDaily ? 'background: #fff3e0; border: 1px solid #ffe0b2; color: #d35400;' : 'background: #f8f9fa; border: 1px solid #eee; color: #666;'">
+                    <div v-if="room.priceMonthly || room.priceDaily" style="margin-bottom: 0.125rem;"><strong>(Harga Khusus)</strong></div>
+                    <div>Bulanan: Rp {{ formatRupiah(room.priceMonthly || rt.price) }}</div>
+                    <div>Harian: Rp {{ formatRupiah(room.priceDaily || rt.priceDaily || Math.ceil(rt.price/30)) }}</div>
+                  </div>
+                </td>
+                <td>
+                  <div style="display: flex; flex-wrap: wrap; gap: 0.3125rem;">
+                    <span v-for="feat in room.features" :key="feat" style="background: #e8f5e9; color: #2e7d32; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8em; border: 1px solid #c8e6c9;">{{ feat }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-badge" :class="'status-' + room.status.toLowerCase()">{{ room.status }}</span>
+                  
+                  <div style="margin-top: 0.625rem; display: flex; gap: 0.3125rem; flex-wrap: wrap; align-items: center;" v-if="room.status !== 'Occupied'">
+                    <span style="font-size: 0.85em; color: #555; font-weight: bold; margin-right: 0.25rem;">Ubah Ke:</span>
+                    <button v-if="room.status !== 'Available'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.85em; background: var(--success); box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Available')">Tersedia</button>
+                    <button v-if="room.status !== 'Cleaning'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.85em; background: #3498db; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Cleaning')">Bersihkan</button>
+                    <button v-if="room.status !== 'Maintenance'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.85em; background: #e67e22; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Maintenance')">Perbaikan</button>
+                  </div>
+                </td>
+                <td>
+                  <div v-if="getRentalsForRoom(room._id).length">
+                    <div v-for="r in getRentalsForRoom(room._id)" :key="r._id" style="margin-bottom: 0.3125rem; font-size: 0.9em; background: #f8f9fa; padding: 0.3125rem; border-radius: 0.25rem; border: 1px solid #eee;">
+                      <strong>{{ r.customerIds.map((c: any) => c.name).join(', ') }}</strong>
+                      <div style="color: #666; font-size: 0.85em;">
+                        {{ r.rentalType }}<br/>
+                        <span v-if="r.rentalType === 'Long-Stay' && r.paidUntil">
+                          Paid Until: {{ new Date(r.paidUntil).toLocaleDateString('id-ID') }}
+                        </span>
+                        <span v-if="r.rentalType === 'One-Time' && r.expectedReturnDate">
+                          Jatuh Tempo: {{ new Date(r.expectedReturnDate).toLocaleDateString('id-ID') }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span v-else style="color: #999;">-</span>
+                </td>
+                <td>
+                  <button class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.9em; background: #34495e; margin-bottom: 0.3125rem; width: 100%;" @click="openRoomForm(room)">Edit</button>
+                  <button class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.9em; background: var(--danger); width: 100%;" @click="deleteRoom(room._id)">Hapus</button>
+                </td>
+              </tr>
+              <tr v-if="getFilteredRoomsByType(rt._id).length === 0">
+                <td colspan="6" style="text-align: center; color: #888;">Tidak ada room di dalam tipe ini yang cocok dengan pencarian.</td>
+              </tr>
+            </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem;">
         <div style="font-size: 0.9em;">
           Tampilkan: 
-          <select v-model="itemsPerPage" class="input" style="width: auto; padding: 2px 5px; margin: 0; display: inline-block;" @change="currentPage = 1">
+          <select v-model="itemsPerPage" class="input" style="width: auto; padding: 0.125rem 0.3125rem; margin: 0; display: inline-block;" @change="currentPage = 1">
+            <option :value="5">5</option>
             <option :value="10">10</option>
             <option :value="25">25</option>
             <option :value="50">50</option>
-            <option :value="100">100</option>
           </select>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center; font-size: 0.9em;">
-          <button class="btn" :disabled="currentPage === 1" @click="currentPage--" style="background: #e0e0e0; color: #333; padding: 2px 10px;">&lt; Prev</button>
-          <span>Halaman {{ currentPage }} dari {{ totalPages || 1 }}</span>
-          <button class="btn" :disabled="currentPage >= totalPages || totalPages === 0" @click="currentPage++" style="background: #e0e0e0; color: #333; padding: 2px 10px;">Next &gt;</button>
+        <div style="display: flex; gap: 0.625rem; align-items: center; font-size: 0.9em;">
+          <button class="btn" :disabled="currentPage === 1" @click="currentPage--" style="background: #e0e0e0; color: #333; padding: 0.125rem 0.625rem;">&lt; Prev</button>
+          <span style="font-weight: bold;">Halaman {{ currentPage }} dari {{ totalPages || 1 }}</span>
+          <button class="btn" :disabled="currentPage >= totalPages || totalPages === 0" @click="currentPage++" style="background: #e0e0e0; color: #333; padding: 0.125rem 0.625rem;">Next &gt;</button>
         </div>
       </div>
     </div>
@@ -169,206 +243,337 @@ import { useRouter } from 'vue-router';
 import { useApi } from '../composables/useApi';
 
 const router = useRouter();
-const { getRooms, getActiveRentals } = useApi();
+const { getRoomTypes, getRooms, getFeatureTags, getActiveRentals } = useApi();
+
+const roomTypes = ref<any[]>([]);
 const rooms = ref<any[]>([]);
+const featureTags = ref<any[]>([]);
 const activeRentals = ref<any[]>([]);
 const pending = ref(true);
-const showForm = ref(false);
 
 const searchQuery = ref('');
-const sortKey = ref('tipeKamar');
-const sortDesc = ref(false);
-const expandedRow = ref<string | null>(null);
-const isEditing = ref(false);
-const editId = ref<string | null>(null);
+const expandedRTs = ref<string[]>([]);
 
-const sortByCol = (key: string) => {
-  if (sortKey.value === key) {
-    sortDesc.value = !sortDesc.value;
-  } else {
-    sortKey.value = key;
-    sortDesc.value = false;
-  }
-};
+// RoomType Form
+const showRoomTypeForm = ref(false);
+const isEditingRT = ref(false);
+const rtEditId = ref<string | null>(null);
+const rtForm = ref({ name: '', price: '', priceDaily: '', features: [] as string[] });
+const rtImageFile = ref<File | null>(null);
+const rtImagePreview = ref<string | null>(null);
 
-const formatRupiah = (number: number) => {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
-};
+// Room Form
+const showRoomForm = ref(false);
+const isEditingRoom = ref(false);
+const rEditId = ref<string | null>(null);
+const rForm = ref({ roomTypeId: '', roomNumber: '', status: 'Available', features: [] as string[], priceMonthly: '', priceDaily: '' });
+const rImageFile = ref<File | null>(null);
+const rImagePreview = ref<string | null>(null);
 
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
-
-const form = ref({ tipeKamar: '', fasilitas: '', price: '', totalStock: '' });
-const imageFile = ref<File | null>(null);
-const imagePreview = ref<string | null>(null);
-
-const transferActive = ref({ kebayaId: null, from: '', to: '', max: 1 });
-const transferAmount = ref(1);
+const newTagInput = ref('');
 
 const fetchData = async () => {
   pending.value = true;
-  rooms.value = await getRooms();
-  activeRentals.value = await getActiveRentals();
+  try {
+    roomTypes.value = await getRoomTypes();
+    rooms.value = await getRooms();
+    featureTags.value = await getFeatureTags();
+    activeRentals.value = await getActiveRentals();
+    
+    // Auto-expand if only 1 room type
+    if (roomTypes.value.length === 1) {
+      expandedRTs.value = [roomTypes.value[0]._id];
+    }
+  } catch (err) {
+    console.error(err);
+  }
   pending.value = false;
 };
 
-const handleFileUpload = (e: any) => {
-  const file = e.target.files[0];
-  if (file) {
-    imageFile.value = file;
-    imagePreview.value = URL.createObjectURL(file);
-  } else {
-    imageFile.value = null;
-    imagePreview.value = null;
-  }
+onMounted(fetchData);
+
+const formatRupiah = (number: number) => {
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(number || 0);
 };
 
-const saveKebaya = async () => {
-  if (!form.value.tipeKamar || !form.value.fasilitas || !form.value.price || !form.value.totalStock) {
-    return alert('Harap isi semua field');
-  }
+const availableTags = computed(() => {
+  return featureTags.value.sort((a, b) => a.name.localeCompare(b.name));
+});
 
-  const formData = new FormData();
-  formData.append('tipeKamar', form.value.tipeKamar);
-  formData.append('fasilitas', form.value.fasilitas);
-  formData.append('price', String(form.value.price));
-  formData.append('totalStock', String(form.value.totalStock));
+const addNewTag = async () => {
+  if (!newTagInput.value.trim()) return;
+  const tagName = newTagInput.value.trim();
   
-  if (!isEditing.value) {
-    formData.append('availableStock', String(form.value.totalStock));
+  if (featureTags.value.find(t => t.name.toLowerCase() === tagName.toLowerCase())) {
+    newTagInput.value = '';
+    return;
   }
-
-  if (imageFile.value) {
-    formData.append('image', imageFile.value);
-  }
-
+  
   try {
-    const url = isEditing.value ? `http://localhost:3001/api/rooms/${editId.value}` : 'http://localhost:3001/api/rooms';
-    const method = isEditing.value ? 'PUT' : 'POST';
-
-    const res = await fetch(url, { method, body: formData });
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || 'Server error');
-    }
-    cancelEdit();
-    fetchData();
-  } catch (err: any) {
-    alert('Gagal menyimpan room: ' + err.message);
-  }
-};
-
-const cancelEdit = () => {
-  showForm.value = false;
-  isEditing.value = false;
-  editId.value = null;
-  form.value = { tipeKamar: '', fasilitas: '', price: '', totalStock: '' };
-  imageFile.value = null;
-  imagePreview.value = null;
-};
-
-const editKebaya = (k: any) => {
-  isEditing.value = true;
-  editId.value = k._id;
-  form.value = { tipeKamar: k.tipeKamar, fasilitas: k.fasilitas, price: k.price, totalStock: k.totalStock };
-  imagePreview.value = k.imageUrl ? `http://localhost:3001${k.imageUrl}` : null;
-  showForm.value = true;
-};
-
-const deleteKebaya = async (id: string) => {
-  if (confirm('Anda yakin ingin menghapus room ini?')) {
-    try {
-      await fetch(`http://localhost:3001/api/rooms/${id}`, { method: 'DELETE' });
-      fetchData();
-    } catch (err) {
-      alert('Gagal menghapus room');
-    }
-  }
-};
-
-const openTransfer = (kebayaId: string, from: string, to: string, maxAmount: number) => {
-  transferActive.value = { kebayaId: kebayaId as any, from, to, max: maxAmount };
-  transferAmount.value = 1;
-};
-
-const cancelTransfer = () => {
-  transferActive.value = { kebayaId: null, from: '', to: '', max: 1 };
-  transferAmount.value = 1;
-};
-
-const confirmTransfer = async () => {
-  const { kebayaId, from, to, max } = transferActive.value;
-  const amount = transferAmount.value;
-  if (!kebayaId || amount <= 0 || amount > max) {
-    return alert('Jumlah tidak valid!');
-  }
-
-  try {
-    const res = await fetch(`http://localhost:3001/api/rooms/${kebayaId}/transfer-stock`, {
+    const res = await fetch('http://localhost:3001/api/rooms/features', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to, amount })
+      body: JSON.stringify({ name: tagName })
     });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Gagal memindahkan stok');
-    }
-    cancelTransfer();
-    fetchData();
-  } catch(err: any) {
-    alert(err.message);
-  }
-};
-
-const adjustStock = async (k: any, amount: number) => {
-  const newStock = Number(k.totalStock) + amount;
-  if (newStock < 0) return;
-  const newAvailable = Number(k.availableStock) + amount;
-  
-  const formData = new FormData();
-  formData.append('totalStock', String(newStock));
-  formData.append('availableStock', String(newAvailable));
-  
-  await fetch(`http://localhost:3001/api/rooms/${k._id}`, { method: 'PUT', body: formData });
-  fetchData();
-};
-
-const toggleRow = (id: string) => {
-  expandedRow.value = expandedRow.value === id ? null : id;
-};
-
-const getRentalsForKebaya = (kebayaId: string) => {
-  return activeRentals.value.filter(r => r.kebayaId && r.kebayaId._id === kebayaId);
-};
-
-const filteredAndSortedRooms = computed(() => {
-  let result = [...rooms.value];
-  
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase();
-    result = result.filter(k => k.tipeKamar.toLowerCase().includes(q) || k.fasilitas.toLowerCase().includes(q));
-  }
-  
-  result.sort((a, b) => {
-    let valA = a[sortKey.value];
-    let valB = b[sortKey.value];
-    if (typeof valA === 'string') valA = valA.toLowerCase();
-    if (typeof valB === 'string') valB = valB.toLowerCase();
+    const data = await res.json();
+    featureTags.value.push(data);
     
-    if (valA < valB) return sortDesc.value ? 1 : -1;
-    if (valA > valB) return sortDesc.value ? -1 : 1;
-    return 0;
-  });
+    // Automatically check it in active form
+    if (showRoomTypeForm.value) rtForm.value.features.push(data.name);
+    if (showRoomForm.value) rForm.value.features.push(data.name);
+    
+    newTagInput.value = '';
+  } catch(err) {
+    alert('Gagal menambah tag');
+  }
+};
+
+const toggleRT = (id: string) => {
+  if (expandedRTs.value.includes(id)) {
+    expandedRTs.value = expandedRTs.value.filter(x => x !== id);
+  } else {
+    expandedRTs.value.push(id);
+  }
+};
+
+const expandAll = () => {
+  expandedRTs.value = filteredRoomTypes.value.map(rt => rt._id);
+};
+
+const collapseAll = () => {
+  expandedRTs.value = [];
+};
+
+// --- ROOM TYPES LOGIC ---
+
+const openRoomTypeForm = (rt: any) => {
+  if (rt) {
+    isEditingRT.value = true;
+    rtEditId.value = rt._id;
+    rtForm.value = { name: rt.name, price: rt.price, priceDaily: rt.priceDaily, features: [...rt.features] };
+    rtImagePreview.value = rt.imageUrl ? `http://localhost:3001${rt.imageUrl}` : null;
+  } else {
+    isEditingRT.value = false;
+    rtEditId.value = null;
+    rtForm.value = { name: '', price: '', priceDaily: '', features: [] };
+    rtImagePreview.value = null;
+  }
+  rtImageFile.value = null;
+  showRoomTypeForm.value = true;
+  showRoomForm.value = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const handleRTImageUpload = (e: any) => {
+  const file = e.target.files[0];
+  if (file) {
+    rtImageFile.value = file;
+    rtImagePreview.value = URL.createObjectURL(file);
+  }
+};
+
+const saveRoomType = async () => {
+  const formData = new FormData();
+  formData.append('name', rtForm.value.name);
+  formData.append('price', String(rtForm.value.price));
+  formData.append('priceDaily', String(rtForm.value.priceDaily || 0));
+  formData.append('features', JSON.stringify(rtForm.value.features));
+  if (rtImageFile.value) formData.append('image', rtImageFile.value);
+
+  const url = isEditingRT.value ? `http://localhost:3001/api/rooms/types/${rtEditId.value}` : 'http://localhost:3001/api/rooms/types';
+  const method = isEditingRT.value ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, { method, body: formData });
+    if (!res.ok) throw new Error(await res.text());
+    showRoomTypeForm.value = false;
+    await fetchData();
+  } catch(err: any) {
+    alert('Error: ' + err.message);
+  }
+};
+
+// --- ROOMS LOGIC ---
+
+const onRoomTypeChangeForRoom = () => {
+  if (!isEditingRoom.value && rForm.value.roomTypeId) {
+    const rt = roomTypes.value.find(t => t._id === rForm.value.roomTypeId);
+    if (rt) {
+      rForm.value.features = [...rt.features];
+    }
+  }
+};
+
+const openRoomForm = (r: any, prefilledTypeId: string = '') => {
+  if (r) {
+    isEditingRoom.value = true;
+    rEditId.value = r._id;
+    rForm.value = { 
+      roomTypeId: r.roomTypeId._id || r.roomTypeId, 
+      roomNumber: r.roomNumber, 
+      status: r.status, 
+      features: [...r.features],
+      priceMonthly: r.priceMonthly || '',
+      priceDaily: r.priceDaily || ''
+    };
+    rImagePreview.value = r.imageUrl ? `http://localhost:3001${r.imageUrl}` : null;
+  } else {
+    isEditingRoom.value = false;
+    rEditId.value = null;
+    let newFeatures: string[] = [];
+    if (prefilledTypeId) {
+      const parentRt = roomTypes.value.find(type => type._id === prefilledTypeId);
+      if (parentRt) newFeatures = [...parentRt.features];
+    }
+    rForm.value = { roomTypeId: prefilledTypeId, roomNumber: '', status: 'Available', features: newFeatures, priceMonthly: '', priceDaily: '' };
+    rImagePreview.value = null;
+  }
+  rImageFile.value = null;
+  showRoomForm.value = true;
+  showRoomTypeForm.value = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const handleRImageUpload = (e: any) => {
+  const file = e.target.files[0];
+  if (file) {
+    rImageFile.value = file;
+    rImagePreview.value = URL.createObjectURL(file);
+  }
+};
+
+const saveRoom = async () => {
+  const formData = new FormData();
+  formData.append('roomTypeId', rForm.value.roomTypeId);
+  formData.append('roomNumber', rForm.value.roomNumber);
+  formData.append('status', rForm.value.status);
+  formData.append('priceMonthly', String(rForm.value.priceMonthly || ''));
+  formData.append('priceDaily', String(rForm.value.priceDaily || ''));
+  formData.append('features', JSON.stringify(rForm.value.features));
+  if (rImageFile.value) formData.append('image', rImageFile.value);
+
+  const url = isEditingRoom.value ? `http://localhost:3001/api/rooms/${rEditId.value}` : 'http://localhost:3001/api/rooms';
+  const method = isEditingRoom.value ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, { method, body: formData });
+    if (!res.ok) throw new Error(await res.text());
+    showRoomForm.value = false;
+    await fetchData();
+  } catch(err: any) {
+    alert('Error: ' + err.message);
+  }
+};
+
+const deleteRoom = async (id: string) => {
+  if (confirm('Yakin ingin menghapus room ini?')) {
+    await fetch(`http://localhost:3001/api/rooms/${id}`, { method: 'DELETE' });
+    await fetchData();
+  }
+};
+
+const changeRoomStatus = async (id: string, newStatus: string) => {
+  const formData = new FormData();
+  formData.append('status', newStatus);
+  await fetch(`http://localhost:3001/api/rooms/${id}`, { method: 'PUT', body: formData });
+  await fetchData();
+};
+
+// --- DATA ACCESSORS & FILTERS ---
+
+const getRoomsByType = (rtId: string) => {
+  return rooms.value.filter(r => (r.roomTypeId._id || r.roomTypeId) === rtId);
+};
+
+const getAvailableCount = (rtId: string) => {
+  return getRoomsByType(rtId).filter(r => r.status === 'Available').length;
+};
+
+const getRentalsForRoom = (roomId: string) => {
+  return activeRentals.value.filter(r => r.roomId && (r.roomId._id || r.roomId) === roomId);
+};
+
+const filteredRoomTypes = computed(() => {
+  if (!searchQuery.value) return roomTypes.value;
   
-  return result;
+  const q = searchQuery.value.toLowerCase();
+  
+  // A RoomType matches if its name matches, its features match, OR any of its rooms match
+  return roomTypes.value.filter(rt => {
+    if (rt.name.toLowerCase().includes(q)) return true;
+    if (rt.features.some((f: string) => f.toLowerCase().includes(q))) return true;
+    
+    // Check its rooms
+    const rtsRooms = getRoomsByType(rt._id);
+    for (const r of rtsRooms) {
+      if (r.roomNumber.toLowerCase().includes(q)) return true;
+      if (r.features.some((f: string) => f.toLowerCase().includes(q))) return true;
+      
+      // Check rentals for this room
+      const rent = getRentalsForRoom(r._id);
+      if (rent.some(rn => rn.customerIds.some((c: any) => c.name.toLowerCase().includes(q)))) return true;
+    }
+    
+    return false;
+  });
 });
 
-const totalPages = computed(() => Math.ceil(filteredAndSortedRooms.value.length / itemsPerPage.value));
+const currentPage = ref(1);
+const itemsPerPage = ref(5);
 
-const paginatedRooms = computed(() => {
+const totalPages = computed(() => {
+  return Math.ceil(filteredRoomTypes.value.length / itemsPerPage.value) || 1;
+});
+
+const paginatedRoomTypes = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
-  return filteredAndSortedRooms.value.slice(start, start + itemsPerPage.value);
+  return filteredRoomTypes.value.slice(start, start + itemsPerPage.value);
 });
 
-onMounted(fetchData);
+// Reset page when search changes
+import { watch } from 'vue';
+watch(searchQuery, () => {
+  currentPage.value = 1;
+});
+
+const getFilteredRoomsByType = (rtId: string) => {
+  let rtsRooms = getRoomsByType(rtId);
+  if (!searchQuery.value) return rtsRooms;
+  
+  const q = searchQuery.value.toLowerCase();
+  return rtsRooms.filter(r => {
+    if (r.roomNumber.toLowerCase().includes(q)) return true;
+    if (r.features.some((f: string) => f.toLowerCase().includes(q))) return true;
+    
+    const rent = getRentalsForRoom(r._id);
+    if (rent.some(rn => rn.customerIds.some((c: any) => c.name.toLowerCase().includes(q)))) return true;
+    
+    // If the room type itself matched the query, show all its rooms
+    const rt = roomTypes.value.find(t => t._id === rtId);
+    if (rt && rt.name.toLowerCase().includes(q)) return true;
+    
+    return false;
+  });
+};
+
 </script>
+
+<style scoped>
+.form-label {
+  display: block;
+  font-size: 0.95em;
+  margin-bottom: 0.3125rem;
+  font-weight: 600;
+  color: #444;
+}
+.status-badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 1.25rem;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+.status-available { background: #e8f5e9; color: #2e7d32; }
+.status-occupied { background: #ffebee; color: #c62828; }
+.status-cleaning { background: #e3f2fd; color: #1565c0; }
+.status-maintenance { background: #fff3e0; color: #ef6c00; }
+</style>

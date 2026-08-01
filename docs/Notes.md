@@ -1,0 +1,24 @@
+[2026-08-01]
+- The DB schema name shall be "Kosan Fio" and must replicate the old Kebaya system.
+- Rename specific attributes (e.g. kebaya -> room) throughout the source code so they fit the "sewa ruang kos" system.
+- Change the background image to reflect "kosan" rather than "batik/kebaya".
+- Make sure the Git repository is initialized as "sistem-manajemen-kosan-fio" with author "fiqri-fatriansyah".
+- Adjust demoSeeder.ts so that all the seed data reflects "sewa ruangan kosan".
+- PWA and Responsive layouts are mandatory.
+- Absolutely no `px` units allowed (except for 1px borders); everything must use `rem`.
+- Minimum font size must be configurable (default 18, configurable down to 1). All text sizes must proportionally scale according to this minimum.
+- Updated wording: "tambah tipe room" -> "tambah tipe baru".
+- Updated wording: "tambah room (tipe ini)" -> "tambah ruangan baru".
+- Reduce the size of the main banner on the "utama" page to allow the renting form to fit on a single screen.
+- Partial DP payments must not be added to "saldo kredit" (saldo mengendap) since the full payment is not yet complete.
+- Room status must be completely dynamic based on active/future `RentalTransaction` dates rather than a static `Room.status` field.
+- If a booking is fully paid but starts in the future, the room must remain available to rent prior to that date.
+- Long-stay rentals block out room availability indefinitely until the tenant formally checks out.
+- A new booking with partial or full DP cannot be overwritten. Attempting to book those overlapping dates must be forbidden unless the original is manually cancelled.
+- A new booking that includes a DP payment can automatically cancel and overwrite an existing future booking that has NO DP paid.
+- The demo seed data must reflect these dynamic status edge cases (e.g., Future Bookings with and without DP).
+- The Kalender timeline must include permanent pagination, including a selector for the number of items per page.
+- The Kalender timeline must support filtering by room type, room number, or tenant name, and be sortable.
+- The Kalender timeline must use distinct color coding for Belum DP/Tunggakan DP (Orange), Tunggakan Bulanan (Red), and Overstay Harian (Dark Red).
+- The Peringatan (Tunggakan & Overstay) table must explicitly show the rental type (Harian/Bulanan) next to the issue description for quick identification.
+- NEVER run the demo seeder unless the application is configured in Demo Mode. To test seed data, you must switch the mode to demo first.

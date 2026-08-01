@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateAdvancedSeed = void 0;
-const Kebaya_1 = __importDefault(require("../models/Room"));
+const Room_1 = __importDefault(require("../models/Room"));
 const Customer_1 = __importDefault(require("../models/Customer"));
 const RentalTransaction_1 = __importDefault(require("../models/RentalTransaction"));
 const generateAdvancedSeed = async () => {
@@ -17,7 +17,7 @@ const generateAdvancedSeed = async () => {
         { tipeKamar: 'Room Pengantin', fasilitas: 'Putih', price: 500000, totalStock: 3, availableStock: 2, cleaningStock: 1, maintenanceStock: 0, conditions: { 'Sangat Baik': 3, 'Baik': 0, 'Rusak Ringan': 0 }, imageUrl: '/uploads/demo_putih.png' },
         { tipeKamar: 'Room Pesta', fasilitas: 'Hitam', price: 150000, totalStock: 20, availableStock: 18, cleaningStock: 2, maintenanceStock: 0, conditions: { 'Sangat Baik': 10, 'Baik': 5, 'Rusak Ringan': 5 }, imageUrl: '/uploads/demo_hitam.png' },
     ];
-    const insertedRooms = await Kebaya_1.default.insertMany(rooms);
+    const insertedRooms = await Room_1.default.insertMany(rooms);
     // 2. Customers
     const customers = [
         { name: 'Siti Aminah', telephone: '081234567890', address: 'Jl. Merdeka No. 1, Jakarta', email: 'siti@example.com' },
@@ -89,7 +89,7 @@ const generateAdvancedSeed = async () => {
         rentals.push({
             transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
             customerId: c._id,
-            kebayaId: k._id,
+            roomId: k._id,
             rentalStartTime: rentDate,
             expectedReturnDate: returnDate,
             rentalEndTime: isCancelled ? rentDate : returnDate,
@@ -100,7 +100,7 @@ const generateAdvancedSeed = async () => {
             penaltyCost: penalty,
             amountToPay: amountToPay,
             returnCondition: isCancelled ? '' : 'Baik',
-            kebayaDestination: isCancelled ? '' : 'Etalase'
+            roomDestination: isCancelled ? '' : 'Etalase'
         });
     }
     // 3b. Generate Currently Active, Booked, and Ready Rentals
@@ -108,7 +108,7 @@ const generateAdvancedSeed = async () => {
     rentals.push({
         transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
         customerId: insertedCustomers[0]._id,
-        kebayaId: insertedRooms[1]._id,
+        roomId: insertedRooms[1]._id,
         rentalStartTime: new Date(now.getTime() - 1 * 86400000), // Rented yesterday
         expectedReturnDate: new Date(now.getTime() + 2 * 86400000),
         depositAmount: insertedRooms[1].price,
@@ -120,7 +120,7 @@ const generateAdvancedSeed = async () => {
     rentals.push({
         transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
         customerId: insertedCustomers[2]._id,
-        kebayaId: insertedRooms[3]._id,
+        roomId: insertedRooms[3]._id,
         rentalStartTime: new Date(now.getTime() + 2 * 86400000),
         expectedReturnDate: new Date(now.getTime() + 5 * 86400000),
         depositAmount: insertedRooms[3].price,
@@ -132,7 +132,7 @@ const generateAdvancedSeed = async () => {
     rentals.push({
         transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
         customerId: insertedCustomers[5]._id,
-        kebayaId: insertedRooms[2]._id,
+        roomId: insertedRooms[2]._id,
         rentalStartTime: new Date(now.getTime() - 5 * 86400000), // Rented 5 days ago
         expectedReturnDate: new Date(now.getTime() - 2 * 86400000), // Due 2 days ago
         depositAmount: insertedRooms[2].price,
@@ -144,7 +144,7 @@ const generateAdvancedSeed = async () => {
     rentals.push({
         transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
         customerId: insertedCustomers[1]._id,
-        kebayaId: insertedRooms[4]._id,
+        roomId: insertedRooms[4]._id,
         rentalStartTime: new Date(now.getTime() + 2 * 86400000), // To be picked up in 2 days
         expectedReturnDate: new Date(now.getTime() + 5 * 86400000),
         depositAmount: insertedRooms[4].price,
@@ -156,7 +156,7 @@ const generateAdvancedSeed = async () => {
     rentals.push({
         transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
         customerId: insertedCustomers[3]._id,
-        kebayaId: insertedRooms[0]._id,
+        roomId: insertedRooms[0]._id,
         rentalStartTime: now, // Pick up today
         expectedReturnDate: new Date(now.getTime() + 3 * 86400000),
         depositAmount: insertedRooms[0].price,
@@ -168,7 +168,7 @@ const generateAdvancedSeed = async () => {
     rentals.push({
         transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
         customerId: insertedCustomers[4]._id,
-        kebayaId: insertedRooms[2]._id,
+        roomId: insertedRooms[2]._id,
         rentalStartTime: new Date(now.getTime() - 2 * 86400000),
         expectedReturnDate: new Date(now.getTime() + 1 * 86400000),
         depositAmount: insertedRooms[2].price,

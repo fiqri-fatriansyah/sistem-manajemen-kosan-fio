@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
-const Kebaya_1 = __importDefault(require("../models/Room"));
+const Room_1 = __importDefault(require("../models/Room"));
 const AuditLog_1 = __importDefault(require("../models/AuditLog"));
 const router = (0, express_1.Router)();
 // Multer storage
@@ -20,7 +20,7 @@ router.post('/', upload.single('image'), async (req, res) => {
         const data = { ...req.body };
         if (req.file)
             data.imageUrl = '/uploads/' + req.file.filename;
-        const room = new Kebaya_1.default(data);
+        const room = new Room_1.default(data);
         await room.save();
         await AuditLog_1.default.create({
             action: 'CREATE',
@@ -35,7 +35,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 });
 router.get('/', async (req, res) => {
     try {
-        const rooms = await Kebaya_1.default.find();
+        const rooms = await Room_1.default.find();
         res.json(rooms);
     }
     catch (err) {
@@ -47,7 +47,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
         const data = { ...req.body };
         if (req.file)
             data.imageUrl = '/uploads/' + req.file.filename;
-        const room = await Kebaya_1.default.findByIdAndUpdate(req.params.id, data, { new: true });
+        const room = await Room_1.default.findByIdAndUpdate(req.params.id, data, { new: true });
         if (!room)
             return res.status(404).json({ error: 'Room not found' });
         await AuditLog_1.default.create({
@@ -63,7 +63,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
 });
 router.delete('/:id', async (req, res) => {
     try {
-        const room = await Kebaya_1.default.findByIdAndDelete(req.params.id);
+        const room = await Room_1.default.findByIdAndDelete(req.params.id);
         if (!room)
             return res.status(404).json({ error: 'Room not found' });
         await AuditLog_1.default.create({
@@ -85,7 +85,7 @@ router.post('/:id/transfer-stock', async (req, res) => {
         if (isNaN(qty) || qty <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
         }
-        const room = await Kebaya_1.default.findById(req.params.id);
+        const room = await Room_1.default.findById(req.params.id);
         if (!room)
             return res.status(404).json({ error: 'Room not found' });
         // Validate from stock

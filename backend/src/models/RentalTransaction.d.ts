@@ -2,7 +2,7 @@ import mongoose, { Document } from 'mongoose';
 export interface IRentalTransaction extends Document {
     transactionId: string;
     customerId: mongoose.Types.ObjectId | string;
-    kebayaId: mongoose.Types.ObjectId | string;
+    roomId: mongoose.Types.ObjectId | string;
     rentalStartTime: Date;
     expectedReturnDate: Date;
     rentalEndTime?: Date;

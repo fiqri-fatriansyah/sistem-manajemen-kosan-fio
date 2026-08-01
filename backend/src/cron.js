@@ -7,7 +7,7 @@ exports.fetchPublicHolidays = exports.startCronJobs = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const RentalTransaction_1 = __importDefault(require("./models/RentalTransaction"));
-const Kebaya_1 = __importDefault(require("./models/Room"));
+const Room_1 = __importDefault(require("./models/Room"));
 const Customer_1 = __importDefault(require("./models/Customer"));
 const Event_1 = __importDefault(require("./models/Event"));
 const Config_1 = __importDefault(require("./models/Config"));
@@ -41,11 +41,11 @@ const startCronJobs = () => {
             const lateRentals = await RentalTransaction_1.default.find({
                 status: 'Active',
                 expectedReturnDate: { $lt: today }
-            }).populate('customerId kebayaId');
+            }).populate('customerId roomId');
             const rentalsDueTomorrow = await RentalTransaction_1.default.find({
                 status: 'Active',
                 expectedReturnDate: { $gte: new Date(tomorrow.setHours(0, 0, 0, 0)), $lt: new Date(tomorrow.setHours(23, 59, 59, 999)) }
-            }).populate('customerId kebayaId');
+            }).populate('customerId roomId');
             if (lateRentals.length === 0 && rentalsDueTomorrow.length === 0) {
                 console.log('[Cron] No late or upcoming rentals found today.');
                 return;
@@ -53,7 +53,7 @@ const startCronJobs = () => {
             let emailText = `Warning! There are ${lateRentals.length} late room rentals today:\n\n`;
             lateRentals.forEach(r => {
                 const c = r.customerId;
-                const k = r.kebayaId;
+                const k = r.roomId;
                 emailText += `- Customer: ${c.name} (${c.telephone})\n  Room: ${k.tipeKamar} (${k.fasilitas})\n  Expected Return: ${new Date(r.expectedReturnDate).toLocaleDateString()}\n\n`;
             });
             const info = await transporter.sendMail({

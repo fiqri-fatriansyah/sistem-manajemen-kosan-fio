@@ -45,7 +45,7 @@ async function runEdgeCaseTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customerId: customer._id,
-        kebayaId: room._id,
+        roomId: room._id,
         expectedReturnDate: new Date(Date.now() + 86400000).toISOString(),
         depositAmount: 100000,
         depositPaid: false
@@ -71,7 +71,7 @@ async function runEdgeCaseTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customerId: customer._id,
-        kebayaId: room._id,
+        roomId: room._id,
         expectedReturnDate: new Date(Date.now() + 86400000).toISOString(),
         depositAmount: 100000,
         depositPaid: false

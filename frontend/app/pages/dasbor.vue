@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
       <h1 class="page-title" style="margin-bottom: 0;">Dasbor Analitik</h1>
-      <div style="display: flex; gap: 10px;">
+      <div style="display: flex; gap: 0.625rem;">
         <a href="http://localhost:3001/api/reports/dashboard?format=pdf" target="_blank">
           <button class="btn" style="background: #c62828; font-size: 1rem;">Export PDF</button>
         </a>
@@ -20,15 +20,15 @@
     <div v-else>
       <div class="dashboard-grid">
         <div class="material-card">
-          <h3 style="margin-bottom: 0px; color: var(--primary-color);">Pendapatan per Bulan (Rp)</h3>
-          <div style="height: 400px; position: relative;">
+          <h3 style="margin-bottom: 0; color: var(--primary-color);">Pendapatan per Bulan (Rp)</h3>
+          <div style="height: 25rem; position: relative;">
             <Bar :data="revenueChartData" :options="barOptions" />
           </div>
         </div>
 
         <div class="material-card">
-          <h3 style="margin-bottom: 0px; color: var(--primary-color);">Tren Penyewaan</h3>
-          <div style="height: 400px; position: relative;">
+          <h3 style="margin-bottom: 0; color: var(--primary-color);">Tren Penyewaan</h3>
+          <div style="height: 25rem; position: relative;">
             <Line :data="rentalsChartData" :options="lineOptions" />
           </div>
         </div>
@@ -36,15 +36,15 @@
 
       <div class="dashboard-grid">
         <div class="material-card">
-          <h3 style="margin-bottom: 0px; color: var(--primary-color); text-align: center;">Room Terpopuler</h3>
-          <div style="height: 400px; position: relative;">
+          <h3 style="margin-bottom: 0; color: var(--primary-color); text-align: center;">Room Terpopuler</h3>
+          <div style="height: 25rem; position: relative;">
             <Pie :data="popularityChartData" :options="pieOptions" />
           </div>
         </div>
 
         <div class="material-card">
-          <h3 style="margin-bottom: 0px; color: #d35400; text-align: center;">Status Deposit (Sedang Berjalan)</h3>
-          <div style="height: 400px; position: relative;">
+          <h3 style="margin-bottom: 0; color: #d35400; text-align: center;">Status Deposit (Sedang Berjalan)</h3>
+          <div style="height: 25rem; position: relative;">
             <Pie :data="depositChartData" :options="pieOptions" />
           </div>
         </div>
@@ -52,23 +52,23 @@
 
       <div class="dashboard-grid">
         <div class="material-card">
-          <h3 style="margin-bottom: 0px; color: #f39c12;">Top 5 Pelanggan Paling Bernilai (Pendapatan Rp)</h3>
-          <div style="height: 400px; position: relative;">
+          <h3 style="margin-bottom: 0; color: #f39c12;">Top 5 Pelanggan Paling Bernilai (Pendapatan Rp)</h3>
+          <div style="height: 25rem; position: relative;">
             <Bar :data="topValueCustomersData" :options="barOptions" />
           </div>
         </div>
 
         <div class="material-card">
-          <h3 style="margin-bottom: 0px; color: #8e44ad;">Segmentasi Loyalitas Pelanggan</h3>
-          <div style="height: 400px; position: relative;">
+          <h3 style="margin-bottom: 0; color: #8e44ad;">Segmentasi Loyalitas Pelanggan</h3>
+          <div style="height: 25rem; position: relative;">
             <Pie :data="loyaltyChartData" :options="pieOptions" />
           </div>
         </div>
       </div>
 
       <div class="material-card full-width-card">
-        <h3 style="margin-bottom: 0px; color: #c0392b; text-align: center;">Pelanggan Bermasalah (Denda / Batal)</h3>
-        <div style="height: 400px; position: relative;">
+        <h3 style="margin-bottom: 0; color: #c0392b; text-align: center;">Pelanggan Bermasalah (Denda / Batal)</h3>
+        <div style="height: 25rem; position: relative;">
           <Bar :data="problematicCustomersData" :options="barOptions" />
         </div>
       </div>
@@ -276,21 +276,21 @@ onMounted(async () => {
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
 }
 .full-width-card {
   width: 100%;
   margin: 0 auto;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 .half-width-card {
   width: 50%;
   margin: 0 auto;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }

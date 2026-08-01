@@ -37,7 +37,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const RentalTransactionSchema = new mongoose_1.Schema({
     transactionId: { type: String, required: true, unique: true },
     customerId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Customer', required: true },
-    kebayaId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Room', required: true },
+    roomId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Room', required: true },
     rentalStartTime: { type: Date, required: true, default: Date.now },
     expectedReturnDate: { type: Date, required: true },
     rentalEndTime: { type: Date },

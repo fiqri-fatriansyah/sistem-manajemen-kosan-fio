@@ -27,7 +27,7 @@ const generateReceipt = (rental, type, paymentInfo) => {
     doc.text(`Nama Pelanggan: ${rental.customerId.name}`);
     doc.text(`No. Telp: ${rental.customerId.telephone}`);
     doc.moveDown();
-    doc.text(`Room Disewa: ${rental.kebayaId.tipeKamar} (${rental.kebayaId.fasilitas})`);
+    doc.text(`Room Disewa: ${rental.roomId.tipeKamar} (${rental.roomId.fasilitas})`);
     doc.text(`Tanggal Sewa: ${new Date(rental.rentalStartTime).toLocaleDateString('id-ID')}`);
     doc.text(`Ekspektasi Kembali: ${new Date(rental.expectedReturnDate).toLocaleDateString('id-ID')}`);
     doc.moveDown();

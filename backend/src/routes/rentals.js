@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const RentalTransaction_1 = __importDefault(require("../models/RentalTransaction"));
-const Kebaya_1 = __importDefault(require("../models/Room"));
+const Room_1 = __importDefault(require("../models/Room"));
 const Customer_1 = __importDefault(require("../models/Customer"));
 const Config_1 = __importDefault(require("../models/Config"));
 const AuditLog_1 = __importDefault(require("../models/AuditLog"));
@@ -16,8 +16,8 @@ const router = (0, express_1.Router)();
 // Create rental
 router.post('/', async (req, res) => {
     try {
-        const { customerId, kebayaId, rentalStartTime, expectedReturnDate, initialPayment, totalCost } = req.body;
-        const room = await Kebaya_1.default.findById(kebayaId);
+        const { customerId, roomId, rentalStartTime, expectedReturnDate, initialPayment, totalCost } = req.body;
+        const room = await Room_1.default.findById(roomId);
         if (!room || room.availableStock < 1) {
             return res.status(400).json({ error: 'Room not available' });
         }
@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
         const rental = new RentalTransaction_1.default({
             transactionId,
             customerId,
-            kebayaId,
+            roomId,
             rentalStartTime: rentalStartTime || new Date(),
             expectedReturnDate,
             depositAmount: targetAmount,
@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
         room.availableStock -= 1;
         await room.save();
         await rental.save();
-        const populatedRental = await RentalTransaction_1.default.findById(rental._id).populate('customerId').populate('kebayaId');
+        const populatedRental = await RentalTransaction_1.default.findById(rental._id).populate('customerId').populate('roomId');
         // Generate deposit receipt
         (0, receiptGenerator_1.generateReceipt)(populatedRental, 'Deposit');
         await AuditLog_1.default.create({
@@ -66,7 +66,7 @@ router.get('/', async (req, res) => {
     try {
         const rentals = await RentalTransaction_1.default.find()
             .populate('customerId')
-            .populate('kebayaId')
+            .populate('roomId')
             .sort({ expectedReturnDate: 1 });
         res.json(rentals);
     }
@@ -79,7 +79,7 @@ router.get('/active', async (req, res) => {
     try {
         const rentals = await RentalTransaction_1.default.find({ status: 'Active' })
             .populate('customerId')
-            .populate('kebayaId');
+            .populate('roomId');
         res.json(rentals);
     }
     catch (err) {
@@ -90,7 +90,7 @@ router.get('/active', async (req, res) => {
 router.post('/:id/pay-deposit', async (req, res) => {
     try {
         const { amount } = req.body;
-        const rental = await RentalTransaction_1.default.findById(req.params.id).populate('customerId').populate('kebayaId');
+        const rental = await RentalTransaction_1.default.findById(req.params.id).populate('customerId').populate('roomId');
         if (!rental)
             return res.status(404).json({ error: 'Rental not found' });
         if (rental.status !== 'Booked')
@@ -153,7 +153,7 @@ router.post('/:id/pickup', async (req, res) => {
 // Return Room
 router.post('/:id/return', async (req, res) => {
     try {
-        const rental = await RentalTransaction_1.default.findById(req.params.id).populate('customerId').populate('kebayaId');
+        const rental = await RentalTransaction_1.default.findById(req.params.id).populate('customerId').populate('roomId');
         if (!rental)
             return res.status(404).json({ error: 'Rental not found' });
         if (rental.status !== 'Active')
@@ -182,11 +182,11 @@ router.post('/:id/return', async (req, res) => {
         let daysRented = Math.ceil(msRented / (1000 * 60 * 60 * 24));
         if (daysRented < 1)
             daysRented = 1;
-        const k = rental.kebayaId;
+        const k = rental.roomId;
         const basePay = k.price * daysRented;
         rental.amountToPay = basePay + penaltyPay - rental.depositAmount;
         await rental.save();
-        const room = await Kebaya_1.default.findById(rental.kebayaId);
+        const room = await Room_1.default.findById(rental.roomId);
         if (room) {
             room.availableStock += 1;
             await room.save();
@@ -221,7 +221,7 @@ router.post('/:id/cancel', async (req, res) => {
         }
         rental.status = 'Cancelled';
         await rental.save();
-        const room = await Kebaya_1.default.findById(rental.kebayaId);
+        const room = await Room_1.default.findById(rental.roomId);
         if (room) {
             room.availableStock += 1;
             await room.save();

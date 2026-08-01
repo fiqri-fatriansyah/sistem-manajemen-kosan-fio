@@ -216,16 +216,16 @@
       </div>
     </div>
 
-    <!-- Table 2: Peringatan (Tunggakan & Overstay) -->
+    <!-- Table 2: Peringatan -->
     <div class="material-card" style="margin-bottom: 1.875rem; border-left: 0.25rem solid var(--danger);">
-      <h2 style="margin-bottom: 1.25rem; color: var(--danger);">Peringatan: Tunggakan & Overstay</h2>
+      <h2 style="margin-bottom: 1.25rem; color: var(--danger);">Peringatan</h2>
       <div style="overflow-x: auto; width: 100%;">
         <table class="table">
         <thead>
           <tr>
             <th>Penghuni Utama</th>
             <th>Room</th>
-            <th>Jatuh Tempo</th>
+            <th>Status Hunian & Sewa</th>
             <th>Masalah</th>
             <th>Aksi</th>
           </tr>
@@ -240,14 +240,17 @@
                 {{ r.roomId?.roomNumber }}<br><span style="font-size: 0.8em; color: #666;">{{ r.roomId?.roomTypeId?.name }}</span>
               </div>
             </td>
-            <td>{{ new Date(r.paidUntil || r.expectedReturnDate).toLocaleDateString('id-ID') }}</td>
+            <td>
+              <strong style="color: #27ae60; display: block;">Masih Menghuni</strong>
+              <span style="font-size: 0.9em; color: #666;">({{ r.rentalType === 'Long-Stay' ? 'Bulanan' : 'Harian' }})</span>
+            </td>
             <td>
               <strong style="color: #e74c3c; display: block; font-size: 1rem;">
                 {{ r.currentStatusText?.toUpperCase() || r.uiStatus?.toUpperCase() }} 
-                <span style="font-size: 0.8em; color: #666; font-weight: normal;">
-                  ({{ r.rentalType === 'Long-Stay' ? 'Bulanan' : 'Harian' }})
-                </span>
               </strong>
+              <span style="font-size: 0.85em; color: var(--text-muted);">
+                Jatuh Tempo: {{ new Date(r.paidUntil || r.expectedReturnDate).toLocaleDateString('id-ID') }}
+              </span>
             </td>
             <td>
               <div style="display: flex; gap: 0.625rem; flex-wrap: wrap;">
@@ -283,11 +286,12 @@
       <h2 style="margin-bottom: 1.25rem; color: #d35400;">Daftar Penagihan</h2>
       <div style="overflow-x: auto; width: 100%;">
         <table class="table">
-          <thead><tr><th>Pelanggan</th><th>Kamar</th><th>Total Tunggakan</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>Pelanggan</th><th>Kamar</th><th>Jatuh Tempo</th><th>Total Tunggakan</th><th>Aksi</th></tr></thead>
           <tbody>
             <tr v-for="r in penagihanPaginated" :key="r._id">
               <td>{{ r.customerIds?.[0]?.name }}</td>
               <td>{{ r.roomId?.roomNumber }}</td>
+              <td>{{ new Date(r.paidUntil || r.expectedReturnDate).toLocaleDateString('id-ID') }}</td>
               <td><strong style="color: var(--danger);">Rp {{ formatRupiah(r.tunggakanAmount || 0) }}</strong></td>
               <td>
                 <div style="display: flex; gap: 0.625rem;">

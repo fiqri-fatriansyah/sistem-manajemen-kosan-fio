@@ -16,6 +16,7 @@ export interface IConfig extends Document {
   msgTemplateOverdue: string;
   msgTemplateReminder: string;
   msgTemplateEviction: string;
+  msgTemplateCheckIn: string;
 }
 
 const ConfigSchema: Schema = new Schema({
@@ -34,7 +35,8 @@ const ConfigSchema: Schema = new Schema({
   msgTemplateOverdue: { type: String, default: 'Halo {{nama}},\n\nKami mengingatkan bahwa tagihan sewa kamar {{kamar}} Anda telah melewati batas waktu (jatuh tempo pada {{tanggal}}). Mohon segera melunasi tunggakan sebesar Rp {{nominal}}.\n\nTerima kasih.' },
   msgTemplateOverstay: { type: String, default: 'Halo {{nama}},\n\nKami mengingatkan bahwa masa sewa kamar {{kamar}} Anda telah habis pada {{tanggal}}.\nMohon segera konfirmasi perpanjangan sewa atau silakan check-out.\n\nTerima kasih.' },
   msgTemplateReminder: { type: String, default: 'Halo {{nama}},\n\nKami mengingatkan bahwa tagihan sewa kamar {{kamar}} Anda akan jatuh tempo pada {{tanggal}}.\nMohon persiapkan pembayaran Anda atau silakan konfirmasi jika ingin check-out.\n\nTerima kasih.' },
-  msgTemplateEviction: { type: String, default: 'Halo {{nama}},\n\nKami menginformasikan bahwa masa sewa Anda di kamar {{kamar}} telah berakhir dan melewati batas waktu toleransi.\nMohon kesediaannya untuk segera mengosongkan kamar, atau hubungi kami untuk mendiskusikan lebih lanjut.\n\nTerima kasih atas kerja samanya.' }
+  msgTemplateEviction: { type: String, default: 'Halo {{nama}},\n\nKami menginformasikan bahwa masa sewa Anda di kamar {{kamar}} telah berakhir dan melewati batas waktu toleransi.\nMohon kesediaannya untuk segera mengosongkan kamar, atau hubungi kami untuk mendiskusikan lebih lanjut.\n\nTerima kasih atas kerja samanya.' },
+  msgTemplateCheckIn: { type: String, default: 'Halo {{nama}},\n\nKami mengingatkan bahwa jadwal Check-In Anda untuk kamar {{kamar}} adalah hari ini.\nMohon segera melunasi pembayaran awal (jika ada) dan melakukan Check-In di lokasi.\n\nTerima kasih.' }
 });
 
 export default mongoose.models.Config || mongoose.model<IConfig>('Config', ConfigSchema);

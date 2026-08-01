@@ -179,6 +179,14 @@
 
       <div style="margin-bottom: 0.9375rem;">
         <label style="display: flex; justify-content: space-between; margin-bottom: 0.3125rem;">
+          <span>Pengingat Check-In (Jadwal Hari Ini)</span>
+          <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8em; background: #e0e0e0; color: #333;" @click="resetTemplate('msgTemplateCheckIn')">Reset Default</button>
+        </label>
+        <textarea v-model="form.msgTemplateCheckIn" class="input" style="height: 6.25rem; resize: vertical;"></textarea>
+      </div>
+
+      <div style="margin-bottom: 0.9375rem;">
+        <label style="display: flex; justify-content: space-between; margin-bottom: 0.3125rem;">
           <span>Pengingat Jatuh Tempo (H-1 s/d H-7)</span>
           <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8em; background: #e0e0e0; color: #333;" @click="resetTemplate('msgTemplateReminder')">Reset Default</button>
         </label>
@@ -339,7 +347,8 @@ const defaultTemplates = {
   msgTemplateOverdue: 'Halo {{nama}},\n\nKami mengingatkan bahwa tagihan sewa kamar {{kamar}} Anda telah melewati batas waktu (jatuh tempo pada {{tanggal}}). Mohon segera melunasi tunggakan sebesar Rp {{nominal}}.\n\nTerima kasih.',
   msgTemplateOverstay: 'Halo {{nama}},\n\nKami mengingatkan bahwa masa sewa kamar {{kamar}} Anda telah habis pada {{tanggal}}.\nMohon segera konfirmasi perpanjangan sewa atau silakan check-out.\n\nTerima kasih.',
   msgTemplateReminder: 'Halo {{nama}},\n\nKami mengingatkan bahwa tagihan sewa kamar {{kamar}} Anda akan jatuh tempo pada {{tanggal}}.\nMohon persiapkan pembayaran Anda atau silakan konfirmasi jika ingin check-out.\n\nTerima kasih.',
-  msgTemplateEviction: 'Halo {{nama}},\n\nKami menginformasikan bahwa masa sewa Anda di kamar {{kamar}} telah berakhir dan melewati batas waktu toleransi.\nMohon kesediaannya untuk segera mengosongkan kamar, atau hubungi kami untuk mendiskusikan lebih lanjut.\n\nTerima kasih atas kerja samanya.'
+  msgTemplateEviction: 'Halo {{nama}},\n\nKami menginformasikan bahwa masa sewa Anda di kamar {{kamar}} telah berakhir dan melewati batas waktu toleransi.\nMohon kesediaannya untuk segera mengosongkan kamar, atau hubungi kami untuk mendiskusikan lebih lanjut.\n\nTerima kasih atas kerja samanya.',
+  msgTemplateCheckIn: 'Halo {{nama}},\n\nKami mengingatkan bahwa jadwal Check-In Anda untuk kamar {{kamar}} adalah hari ini.\nMohon segera melunasi pembayaran awal (jika ada) dan melakukan Check-In di lokasi.\n\nTerima kasih.'
 };
 
 const pending = ref(true);
@@ -359,7 +368,8 @@ const form = ref<any>({
   msgTemplateOverdue: defaultTemplates.msgTemplateOverdue,
   msgTemplateOverstay: defaultTemplates.msgTemplateOverstay,
   msgTemplateReminder: defaultTemplates.msgTemplateReminder,
-  msgTemplateEviction: defaultTemplates.msgTemplateEviction
+  msgTemplateEviction: defaultTemplates.msgTemplateEviction,
+  msgTemplateCheckIn: defaultTemplates.msgTemplateCheckIn
 });
 const wipeAudit = ref(false);
 const wiping = ref(false);
@@ -432,6 +442,7 @@ const fetchConfig = async () => {
       form.value.msgTemplateOverstay = data.msgTemplateOverstay || defaultTemplates.msgTemplateOverstay;
       form.value.msgTemplateReminder = data.msgTemplateReminder || defaultTemplates.msgTemplateReminder;
       form.value.msgTemplateEviction = data.msgTemplateEviction || defaultTemplates.msgTemplateEviction;
+      form.value.msgTemplateCheckIn = data.msgTemplateCheckIn || defaultTemplates.msgTemplateCheckIn;
 
       if (form.value.enableWhatsAppBot) {
         checkWaStatus();

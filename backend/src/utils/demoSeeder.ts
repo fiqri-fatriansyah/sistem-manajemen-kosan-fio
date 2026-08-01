@@ -298,10 +298,61 @@ export const generateAdvancedSeed = async () => {
     rentalStartTime: futureStart3,
     expectedReturnDate: futureEnd3,
     status: 'Booked', // Not checked in, NO DP
-    depositAmount: 500000,
+    depositAmount: 0,
     depositPaid: false,
     payments: [] // NO PAYMENT!
   });
+  
+  // 5c. CHECK-IN SYSTEM & PENAGIHAN EDGE CASES (Guaranteed 1 each)
+  
+  // 1. "Today/Paid" (Check-In candidate) -> Start today, Paid partial DP
+  const roomTodayPaid = pickRoom(); occupiedRoomIds.add(roomTodayPaid._id.toString());
+  rentals.push({
+    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+    customerIds: [insertedCustomers[8]._id],
+    roomId: roomTodayPaid._id,
+    rentalType: 'Long-Stay',
+    rentalStartTime: now,
+    paymentReminderDate: now.getDate(),
+    paidUntil: new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()),
+    status: 'Booked',
+    depositAmount: 1500000,
+    depositPaid: false,
+    payments: [{ amount: 500000, date: now, receiptId: 'RCPT-TDP1' }]
+  });
+
+  // 2. "Today/Unpaid" (Check-In candidate) -> Start today, Unpaid
+  const roomTodayUnpaid = pickRoom(); occupiedRoomIds.add(roomTodayUnpaid._id.toString());
+  rentals.push({
+    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+    customerIds: [insertedCustomers[9]._id],
+    roomId: roomTodayUnpaid._id,
+    rentalType: 'One-Time',
+    rentalStartTime: now,
+    expectedReturnDate: new Date(now.getTime() + (3 * 86400000)),
+    status: 'Booked',
+    depositAmount: 0,
+    depositPaid: false,
+    payments: []
+  });
+
+  // 3. "Active/Unpaid" (Penagihan candidate) -> Active, completely unpaid
+  const roomActiveUnpaid = pickRoom(); occupiedRoomIds.add(roomActiveUnpaid._id.toString());
+  rentals.push({
+    transactionId: `TRX-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+    customerIds: [insertedCustomers[10]._id],
+    roomId: roomActiveUnpaid._id,
+    rentalType: 'Long-Stay',
+    rentalStartTime: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
+    paymentReminderDate: now.getDate(),
+    paidUntil: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
+    status: 'Active',
+    depositAmount: 0,
+    depositPaid: false,
+    payments: []
+  });
+
+  // 6. Completed Rentals (Past History);
 
   // 5c. One customer renting multiple rooms
   const richCustomer = insertedCustomers[insertedCustomers.length - 1]; // Andi

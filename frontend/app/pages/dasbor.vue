@@ -18,6 +18,42 @@
     <div v-if="pending">Memuat grafik...</div>
     <div v-else-if="error" style="color: var(--danger)">Gagal memuat data dari server.</div>
     <div v-else>
+      <!-- 4 Metrics Cards -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.875rem;">
+        <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #2980b9, #3498db); color: white;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Tingkat Hunian</h3>
+          <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.tingkatHunian || 0 }}%</div>
+        </div>
+        <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #16a085, #1abc9c); color: white;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Kamar Kosong Hari Ini</h3>
+          <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.kamarKosong || 0 }}</div>
+        </div>
+        <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #c0392b, #e74c3c); color: white;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Total Tunggakan</h3>
+          <div style="font-size: 1.8rem; font-weight: bold; margin-top: 0.625rem;">Rp {{ formatRupiah(stats?.metrics?.totalTunggakan || 0) }}</div>
+        </div>
+        <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #d35400, #e67e22); color: white;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Penghuni Bermasalah</h3>
+          <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.jumlahPenghuniBermasalah || 0 }}</div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="material-card">
+          <h3 style="margin-bottom: 0; color: #c0392b; text-align: center;">Tunggakan berdasarkan Tipe Room</h3>
+          <div style="height: 25rem; position: relative;">
+            <Pie :data="tunggakanRoomTypeChartData" :options="pieOptions" />
+          </div>
+        </div>
+
+        <div class="material-card">
+          <h3 style="margin-bottom: 0; color: #d35400; text-align: center;">Overstay vs Tunggakan (Jumlah Kasus)</h3>
+          <div style="height: 25rem; position: relative;">
+            <Pie :data="overstayVsTunggakanChartData" :options="pieOptions" />
+          </div>
+        </div>
+      </div>
+
       <div class="dashboard-grid">
         <div class="material-card">
           <h3 style="margin-bottom: 0; color: var(--primary-color);">Pendapatan per Bulan (Rp)</h3>
@@ -27,34 +63,34 @@
         </div>
 
         <div class="material-card">
-          <h3 style="margin-bottom: 0; color: var(--primary-color);">Tren Penyewaan</h3>
+          <h3 style="margin-bottom: 0; color: #f39c12;">Top 5 Pelanggan Paling Bernilai (Pendapatan Rp)</h3>
           <div style="height: 25rem; position: relative;">
-            <Line :data="rentalsChartData" :options="lineOptions" />
+            <Bar :data="topValueCustomersData" :options="barOptions" />
           </div>
         </div>
       </div>
 
       <div class="dashboard-grid">
+        <div class="material-card">
+          <h3 style="margin-bottom: 0; color: var(--primary-color);">Tren Penyewaan</h3>
+          <div style="height: 25rem; position: relative;">
+            <Line :data="rentalsChartData" :options="lineOptions" />
+          </div>
+        </div>
+
         <div class="material-card">
           <h3 style="margin-bottom: 0; color: var(--primary-color); text-align: center;">Room Terpopuler</h3>
           <div style="height: 25rem; position: relative;">
             <Pie :data="popularityChartData" :options="pieOptions" />
           </div>
         </div>
-
-        <div class="material-card">
-          <h3 style="margin-bottom: 0; color: #d35400; text-align: center;">Status Deposit (Sedang Berjalan)</h3>
-          <div style="height: 25rem; position: relative;">
-            <Pie :data="depositChartData" :options="pieOptions" />
-          </div>
-        </div>
       </div>
 
       <div class="dashboard-grid">
         <div class="material-card">
-          <h3 style="margin-bottom: 0; color: #f39c12;">Top 5 Pelanggan Paling Bernilai (Pendapatan Rp)</h3>
+          <h3 style="margin-bottom: 0; color: #c0392b; text-align: center;">Pelanggan Bermasalah (Denda / Batal)</h3>
           <div style="height: 25rem; position: relative;">
-            <Bar :data="topValueCustomersData" :options="barOptions" />
+            <Bar :data="problematicCustomersData" :options="barOptions" />
           </div>
         </div>
 
@@ -63,13 +99,6 @@
           <div style="height: 25rem; position: relative;">
             <Pie :data="loyaltyChartData" :options="pieOptions" />
           </div>
-        </div>
-      </div>
-
-      <div class="material-card full-width-card">
-        <h3 style="margin-bottom: 0; color: #c0392b; text-align: center;">Pelanggan Bermasalah (Denda / Batal)</h3>
-        <div style="height: 25rem; position: relative;">
-          <Bar :data="problematicCustomersData" :options="barOptions" />
         </div>
       </div>
     </div>
@@ -87,6 +116,7 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale,
 
 const { getDashboardStats } = useApi();
 const stats = ref<any>(null);
+const allRentals = ref<any[]>([]);
 const pending = ref(true);
 const error = ref(false);
 
@@ -96,6 +126,10 @@ const numberFormatter = (value: number) => {
   if (value >= 1000000) return (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'jt';
   if (value >= 1000) return (value / 1000).toFixed(1).replace(/\.0$/, '') + 'rb';
   return value;
+};
+
+const formatRupiah = (number: number) => {
+  return new Intl.NumberFormat('id-ID').format(number || 0);
 };
 
 const barOptions = { 
@@ -174,6 +208,44 @@ const revenueChartData = computed(() => {
       label: 'Pendapatan',
       backgroundColor: '#6200ea',
       data: stats.value?.charts?.revenuePerMonth || []
+    }]
+  };
+});
+
+const tunggakanRoomTypeChartData = computed(() => {
+  const map: Record<string, number> = {};
+  for (const r of allRentals.value) {
+    if (r.tunggakanAmount && r.tunggakanAmount > 0) {
+      const typeName = r.roomId?.roomTypeId?.name || 'Lainnya';
+      map[typeName] = (map[typeName] || 0) + r.tunggakanAmount;
+    }
+  }
+  return {
+    labels: Object.keys(map).length > 0 ? Object.keys(map) : ['Tidak Ada Tunggakan'],
+    datasets: [{
+      backgroundColor: ['#e74c3c', '#f1c40f', '#e67e22', '#c0392b', '#d35400'],
+      data: Object.keys(map).length > 0 ? Object.values(map) : [1]
+    }]
+  };
+});
+
+const overstayVsTunggakanChartData = computed(() => {
+  let overstay = 0;
+  let tunggakan = 0;
+  for (const r of allRentals.value) {
+    if (r.currentStatusText === 'Overstay' || r.uiStatus === 'Overstay') overstay++;
+    if (r.tunggakanAmount && r.tunggakanAmount > 0) tunggakan++;
+  }
+  
+  if (overstay === 0 && tunggakan === 0) {
+    return { labels: ['Tidak Ada Kasus'], datasets: [{ backgroundColor: ['#2ecc71'], data: [1] }] };
+  }
+  
+  return {
+    labels: ['Tunggakan (Belum Bayar)', 'Overstay (Lewat Tanggal)'],
+    datasets: [{
+      backgroundColor: ['#e74c3c', '#e67e22'],
+      data: [tunggakan, overstay]
     }]
   };
 });
@@ -264,6 +336,8 @@ onMounted(async () => {
 
   try {
     stats.value = await getDashboardStats();
+    const res = await fetch('http://localhost:3001/api/rentals');
+    allRentals.value = await res.json();
   } catch (e) {
     error.value = true;
   } finally {

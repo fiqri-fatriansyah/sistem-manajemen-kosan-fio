@@ -130,6 +130,7 @@
                 <button v-if="r.uiStatus === 'Booked' || (r.rentalType === 'Long-Stay' && r.uiStatus === 'Active')" class="btn" style="background: #f39c12; padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap;" @click="payRent(r)">
                   {{ r.rentalType === 'Long-Stay' ? 'Bayar Sewa' : 'Bayar Sisa/DP' }}
                 </button>
+                <button v-if="r.uiStatus === 'Booked'" class="btn" style="background: #3498db; color: white; padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap; font-weight: bold;" @click="checkIn(r._id)">Check-In</button>
                 <button v-if="r.uiStatus === 'Active'" class="btn" style="background: var(--danger); padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap;" @click="endStay(r._id)">Akhiri Sewa</button>
 
                 <button v-if="r.uiStatus === 'Booked'" class="btn" style="background: #25D366; padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap;" @click="sendWaWarningDeposit(r)">WA Reminder</button>
@@ -367,6 +368,25 @@ const sendWaReceipt = (r: any) => {
     ? `https://web.whatsapp.com/send?phone=${num}&text=${encodeURIComponent(text)}`
     : `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
+};
+
+const checkIn = async (rentalId: string) => {
+  if (confirm('Konfirmasi bahwa penyewa telah hadir dan setuju untuk Check-In sekarang?')) {
+    try {
+      const res = await fetch(`http://localhost:3001/api/rentals/${rentalId}/check-in`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Check-In Berhasil!');
+        fetchData();
+      } else {
+        alert('Gagal Check-In: ' + data.error);
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+  }
 };
 
 const parseWaTemplate = (template: string, custName: string, roomNum: string, dateStr: string, nominal: string) => {

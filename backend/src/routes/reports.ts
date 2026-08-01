@@ -5,6 +5,7 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Image
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import RentalTransaction from '../models/RentalTransaction';
+import Room from '../models/Room';
 import { calculateRentalFinancials } from './rentals';
 
 const router = Router();
@@ -327,6 +328,25 @@ router.get('/dashboard', async (req: Request, res: Response) => {
     }
     const probSorted = Object.entries(customerIssues).filter(x => x[1] > 0).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
+    const computedRentals = rentals; // already mapped in line 259
+    let totalTunggakan = 0;
+    for (const r of computedRentals) {
+      totalTunggakan += r.tunggakanAmount || 0;
+    }
+
+    const rooms = await Room.find({ status: { $ne: 'Maintenance' }});
+    const totalRooms = rooms.length;
+    const now = new Date();
+    const activeRentals = computedRentals.filter(r => 
+      ['Active', 'Booked'].includes(r.uiStatus) && 
+      (new Date(r.rentalStartTime) <= now) &&
+      (!r.expectedReturnDate || new Date(r.expectedReturnDate) >= now)
+    );
+    const occupiedRoomsCount = new Set(activeRentals.map(r => r.roomId ? (r.roomId as any)._id.toString() : '')).size;
+    const tingkatHunian = totalRooms > 0 ? Math.round((occupiedRoomsCount / totalRooms) * 100) : 0;
+    const kamarKosong = Math.max(0, totalRooms - occupiedRoomsCount);
+    const jumlahBermasalah = probSorted.length; // From probSorted logic
+    
     if (format === 'excel') {
       const columns = ['ID', 'Pelanggan', 'Room', 'Waktu Sewa', 'Status Real', 'Pendapatan (Total Terbayar)'];
       const data = rentals.map(r => ({
@@ -340,6 +360,10 @@ router.get('/dashboard', async (req: Request, res: Response) => {
 
       data.push({ 'ID': '', 'Pelanggan': '', 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
       data.push({ 'ID': 'KESIMPULAN UMUM', 'Pelanggan': '', 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
+      data.push({ 'ID': 'Tingkat Hunian', 'Pelanggan': `${tingkatHunian}%`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
+      data.push({ 'ID': 'Kamar Kosong', 'Pelanggan': `${kamarKosong}`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
+      data.push({ 'ID': 'Total Tunggakan', 'Pelanggan': `Rp ${totalTunggakan}`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
+      data.push({ 'ID': 'Penghuni Bermasalah', 'Pelanggan': `${jumlahBermasalah} orang`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
       data.push({ 'ID': 'Total Pendapatan', 'Pelanggan': `Rp ${totalRevenue}`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
 
       const timestamp = new Date().toISOString().replace(/T/, '_').replace(/:/g, '').split('.')[0];

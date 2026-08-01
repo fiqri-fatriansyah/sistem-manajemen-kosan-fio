@@ -87,12 +87,58 @@ export const startCronJobs = () => {
     }
   });
 
+  // Run every day at Midnight (00:01) for No-Show Auto-Cancellation
+  cron.schedule('1 0 * * *', async () => {
+    console.log('[Cron] Running daily no-show cancellation check...');
+    try {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      const noShows = await RentalTransaction.find({
+        status: 'Booked',
+        rentalStartTime: { $lt: today }
+      }).populate({ path: 'roomId', populate: { path: 'roomTypeId' } });
+
+      for (const rental of noShows) {
+        let totalPaid = 0;
+        if (rental.payments && rental.payments.length > 0) {
+          totalPaid = rental.payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+        }
+        
+        let expectedTotal = 0;
+        if (rental.rentalType === 'Long-Stay') {
+          const rt = (rental.roomId as any)?.roomTypeId;
+          expectedTotal = (rental.roomId as any)?.priceMonthly || rt?.price || 0;
+        } else {
+          const rStart = new Date(rental.rentalStartTime);
+          const end = new Date(rental.expectedReturnDate || rental.rentalStartTime);
+          let days = Math.ceil((end.getTime() - rStart.getTime()) / 86400000);
+          if (days < 1) days = 1;
+          const rt = (rental.roomId as any)?.roomTypeId;
+          const dailyPrice = (rental.roomId as any)?.priceDaily || rt?.priceDaily || Math.ceil((rt?.price || 0) / 30);
+          expectedTotal = days * dailyPrice;
+        }
+
+        if (totalPaid >= expectedTotal && expectedTotal > 0) {
+          rental.status = 'Completed';
+          console.log(`[Cron] Auto-Completed full-paid no-show: ${rental.transactionId}`);
+        } else {
+          rental.status = 'Cancelled';
+          console.log(`[Cron] Auto-Cancelled unpaid/partial no-show: ${rental.transactionId}`);
+        }
+        await rental.save();
+      }
+    } catch (err) {
+      console.error('[Cron] Error running no-show check:', err);
+    }
+  });
+
   // Run on January 1st every year
   cron.schedule('0 0 1 1 *', () => {
     fetchPublicHolidays(new Date().getFullYear());
   });
   
-  console.log('[Cron] Cron jobs initialized (0 8 * * *), (0 0 1 1 *).');
+  console.log('[Cron] Cron jobs initialized (0 8 * * *), (1 0 * * *), (0 0 1 1 *).');
 
   // Fetch holidays on boot
   fetchPublicHolidays(new Date().getFullYear());

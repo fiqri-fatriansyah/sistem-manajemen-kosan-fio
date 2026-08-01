@@ -4,6 +4,7 @@ import Room from '../models/Room';
 import RoomType from '../models/RoomType';
 import Customer from '../models/Customer';
 import Event from '../models/Event';
+import { calculateRentalFinancials } from './rentals';
 
 const router = Router();
 
@@ -111,22 +112,51 @@ router.get('/stats', async (req: Request, res: Response) => {
       rentalsPerMonth[month]++;
     }
 
+    const computedRentals = rentals.map(calculateRentalFinancials);
+    let totalTunggakan = 0;
     const customerIssues: Record<string, number> = {};
-    for (const r of rentals) {
+    
+    for (const r of computedRentals) {
+      totalTunggakan += r.tunggakanAmount || 0;
+      
       for (const cId of r.customerIds || []) {
           const idStr = cId.toString();
           if (!customerIssues[idStr]) customerIssues[idStr] = 0;
           if (r.status === 'Cancelled') customerIssues[idStr] += 1;
+          if (r.tunggakanAmount && r.tunggakanAmount > 0) customerIssues[idStr] += (r.tunggakanAmount / 100000); // 1 point per 100k
       }
     }
-    const sortedIssues = Object.entries(customerIssues).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const sortedIssues = Object.entries(customerIssues).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
     const problematicCustomers = [];
-    for (const [id, score] of sortedIssues) {
+    for (const [id, score] of sortedIssues.slice(0, 5)) {
       const c = await Customer.findById(id);
       if (c) problematicCustomers.push({ label: c.name, count: Math.floor(score) });
     }
+    
+    const jumlahPenghuniBermasalah = sortedIssues.length;
+
+    // Room Occupancy
+    const rooms = await Room.find({ status: { $ne: 'Maintenance' }});
+    const totalRooms = rooms.length;
+    // Active rentals occupying rooms today
+    const now = new Date();
+    const activeRentals = computedRentals.filter(r => 
+      ['Active', 'Booked'].includes(r.uiStatus) && 
+      (new Date(r.rentalStartTime) <= now) &&
+      (!r.expectedReturnDate || new Date(r.expectedReturnDate) >= now)
+    );
+    const occupiedRoomsCount = new Set(activeRentals.map(r => r.roomId ? (r.roomId as any)._id.toString() : '')).size;
+    
+    const tingkatHunian = totalRooms > 0 ? Math.round((occupiedRoomsCount / totalRooms) * 100) : 0;
+    const kamarKosong = Math.max(0, totalRooms - occupiedRoomsCount);
 
     res.json({
+      metrics: {
+        tingkatHunian,
+        kamarKosong,
+        totalTunggakan,
+        jumlahPenghuniBermasalah
+      },
       topRooms,
       topCustomers,
       upcomingEvents,

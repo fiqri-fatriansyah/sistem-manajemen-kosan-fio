@@ -35,20 +35,9 @@ export const calculateRentalFinancials = (rentalDoc: any) => {
     calculatedPaidUntil = new Date(start.getFullYear(), start.getMonth() + monthsPaidFull, start.getDate());
     
     if (rental.status !== 'Completed' && rental.status !== 'Cancelled') {
-      if (totalPaid === 0) {
-        currentStatusText = 'Belum Bayar (Booked)';
-        tunggakanAmount = monthlyPrice;
-        uiStatus = 'Booked';
-        rental.depositPaid = false;
-      } else if (totalPaid < monthlyPrice) {
-        currentStatusText = 'DP Parsial (Booked)';
-        tunggakanAmount = monthlyPrice - totalPaid;
-        uiStatus = 'Booked';
-        rental.depositPaid = false;
-        saldoMengendap = 0;
-      } else {
+      if (rental.status === 'Active') {
         uiStatus = 'Active';
-        rental.depositPaid = true;
+        rental.depositPaid = totalPaid > 0;
         
         // Calculate expected months up to today
         let expectedMonths = 1;
@@ -68,6 +57,26 @@ export const calculateRentalFinancials = (rentalDoc: any) => {
           saldoMengendap = totalPaid - expectedTotal;
           currentStatusText = 'Terbayar';
         }
+      } else {
+        // Booked
+        if (totalPaid === 0) {
+          currentStatusText = 'Belum Bayar (Booked)';
+          tunggakanAmount = monthlyPrice;
+          uiStatus = 'Booked';
+          rental.depositPaid = false;
+        } else if (totalPaid < monthlyPrice) {
+          currentStatusText = 'DP Parsial (Booked)';
+          tunggakanAmount = monthlyPrice - totalPaid;
+          uiStatus = 'Booked';
+          rental.depositPaid = false;
+          saldoMengendap = 0;
+        } else {
+          currentStatusText = 'Lunas (Booked)';
+          tunggakanAmount = 0;
+          uiStatus = 'Booked';
+          rental.depositPaid = true;
+          saldoMengendap = totalPaid - monthlyPrice;
+        }
       }
     }
   } else {
@@ -79,27 +88,38 @@ export const calculateRentalFinancials = (rentalDoc: any) => {
     const expectedTotal = days * dailyPrice;
     
     if (rental.status !== 'Completed' && rental.status !== 'Cancelled') {
-      if (totalPaid === 0) {
-        currentStatusText = 'Belum DP (Booked)';
-        tunggakanAmount = expectedTotal;
-        uiStatus = 'Booked';
-        rental.depositPaid = false;
-      } else if (totalPaid < expectedTotal) {
-        currentStatusText = 'DP Parsial (Booked)';
-        tunggakanAmount = expectedTotal - totalPaid;
-        // If they missed check-in date
-        if (now > start) currentStatusText = 'Tunggakan DP';
-        uiStatus = 'Booked';
-        rental.depositPaid = false;
-        saldoMengendap = 0;
-      } else {
+      if (rental.status === 'Active') {
         uiStatus = 'Active';
-        rental.depositPaid = true;
-        saldoMengendap = totalPaid - expectedTotal;
-        if (now > end) {
-          currentStatusText = 'Overstay';
+        rental.depositPaid = totalPaid > 0;
+        saldoMengendap = totalPaid > expectedTotal ? totalPaid - expectedTotal : 0;
+        tunggakanAmount = expectedTotal > totalPaid ? expectedTotal - totalPaid : 0;
+        if (tunggakanAmount > 0) {
+           currentStatusText = 'Tunggakan';
+        } else if (now > end) {
+           currentStatusText = 'Overstay';
         } else {
-          currentStatusText = 'Terbayar';
+           currentStatusText = 'Terbayar';
+        }
+      } else {
+        // Booked
+        if (totalPaid === 0) {
+          currentStatusText = 'Belum DP (Booked)';
+          tunggakanAmount = expectedTotal;
+          uiStatus = 'Booked';
+          rental.depositPaid = false;
+        } else if (totalPaid < expectedTotal) {
+          currentStatusText = 'DP Parsial (Booked)';
+          tunggakanAmount = expectedTotal - totalPaid;
+          if (now > start) currentStatusText = 'Tunggakan DP';
+          uiStatus = 'Booked';
+          rental.depositPaid = false;
+          saldoMengendap = 0;
+        } else {
+          currentStatusText = 'Lunas (Booked)';
+          tunggakanAmount = 0;
+          uiStatus = 'Booked';
+          rental.depositPaid = true;
+          saldoMengendap = totalPaid - expectedTotal;
         }
       }
     } else if (rental.status === 'Completed') {
@@ -199,16 +219,21 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
+    const rStart = rentalStartTime ? new Date(rentalStartTime) : new Date();
+    const today = new Date();
+    const isToday = rStart.getDate() === today.getDate() && rStart.getMonth() === today.getMonth() && rStart.getFullYear() === today.getFullYear();
+    const initialStatus = (isToday && paid > 0) ? 'Active' : 'Booked';
+
     const rental = new RentalTransaction({
       transactionId,
       customerIds,
       roomId,
       rentalType,
-      rentalStartTime: rentalStartTime || new Date(),
+      rentalStartTime: rStart,
       expectedReturnDate: rentalType === 'One-Time' ? expectedReturnDate : undefined,
       paymentReminderDate: rentalType === 'Long-Stay' ? paymentReminderDate : undefined,
       payments: payments,
-      status: 'Booked' // Default
+      status: initialStatus
     });
 
     await rental.save();
@@ -240,6 +265,32 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(201).json(calculateRentalFinancials(finalRental));
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Manual Check-In
+router.post('/:id/check-in', async (req: Request, res: Response) => {
+  try {
+    const rental = await RentalTransaction.findById(req.params.id);
+    if (!rental) return res.status(404).json({ error: 'Rental not found' });
+    
+    if (rental.status !== 'Booked') {
+      return res.status(400).json({ error: 'Only booked rentals can be checked in.' });
+    }
+    
+    rental.status = 'Active';
+    await rental.save();
+    
+    await AuditLog.create({
+      action: 'UPDATE',
+      entity: 'Rental',
+      details: `Checked in rental ${rental.transactionId}`
+    });
+    
+    const populated = await RentalTransaction.findById(rental._id).populate('customerIds').populate({ path: 'roomId', populate: { path: 'roomTypeId' } });
+    res.json(calculateRentalFinancials(populated));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 

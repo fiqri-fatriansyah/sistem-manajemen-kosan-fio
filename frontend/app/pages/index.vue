@@ -161,8 +161,63 @@
       </div>
     </div>
 
-    <!-- Daftar Penghuni Telat Bayar / Overstay -->
-    <div v-if="dueRentals.length > 0" class="material-card" style="margin-bottom: 1.875rem; border-left: 0.25rem solid var(--danger);">
+    <!-- 4 Metrics Cards -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.875rem;">
+      <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #2980b9, #3498db); color: white;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Tingkat Hunian</h3>
+        <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.tingkatHunian || 0 }}%</div>
+      </div>
+      <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #16a085, #1abc9c); color: white;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Kamar Kosong Hari Ini</h3>
+        <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.kamarKosong || 0 }}</div>
+      </div>
+      <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #c0392b, #e74c3c); color: white;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Total Tunggakan</h3>
+        <div style="font-size: 1.8rem; font-weight: bold; margin-top: 0.625rem;">Rp {{ formatRupiah(stats?.metrics?.totalTunggakan || 0) }}</div>
+      </div>
+      <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #d35400, #e67e22); color: white;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Penghuni Bermasalah</h3>
+        <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.jumlahPenghuniBermasalah || 0 }}</div>
+      </div>
+    </div>
+
+    <!-- 3 Tracking Tables -->
+    
+    <!-- Table 1: Jadwal Check-In Hari Ini -->
+    <div class="material-card" style="margin-bottom: 1.875rem; border-left: 0.25rem solid #3498db;">
+      <h2 style="margin-bottom: 1.25rem; color: #2980b9;">Jadwal Check-In Hari Ini</h2>
+      <div style="overflow-x: auto; width: 100%;">
+        <table class="table">
+          <thead><tr><th>Pelanggan</th><th>Kamar</th><th>Tgl Masuk</th><th>Deposit/Lunas</th><th>Aksi</th></tr></thead>
+          <tbody>
+            <tr v-for="r in checkInPaginated" :key="r._id">
+              <td>{{ r.customerIds?.[0]?.name }}</td>
+              <td>{{ r.roomId?.roomNumber }}</td>
+              <td>{{ new Date(r.rentalStartTime).toLocaleDateString('id-ID') }}</td>
+              <td>
+                <span :style="r.depositPaid ? 'color: var(--success); font-weight: bold;' : 'color: var(--danger); font-weight: bold;'">
+                  {{ r.depositPaid ? 'Sudah DP/Lunas' : 'Belum Bayar' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn" style="background: #3498db; color: white;" @click="checkIn(r._id)">Check-In</button>
+              </td>
+            </tr>
+            <tr v-if="checkInRentals.length === 0"><td colspan="5" style="text-align: center; padding: 1.25rem;">Tidak ada jadwal Check-In.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.9375rem; font-size: 0.9em;">
+        <span>Total: {{ checkInRentals.length }} | Halaman {{ pageCheckIn }} dari {{ checkInTotalPages || 1 }}</span>
+        <div style="display: flex; gap: 0.625rem;">
+          <button class="btn" :disabled="pageCheckIn <= 1" @click="pageCheckIn--" style="padding: 0.25rem 0.625rem; background: #eee; color: #333;">Prev</button>
+          <button class="btn" :disabled="pageCheckIn >= checkInTotalPages || checkInTotalPages === 0" @click="pageCheckIn++" style="padding: 0.25rem 0.625rem; background: #eee; color: #333;">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table 2: Peringatan (Tunggakan & Overstay) -->
+    <div class="material-card" style="margin-bottom: 1.875rem; border-left: 0.25rem solid var(--danger);">
       <h2 style="margin-bottom: 1.25rem; color: var(--danger);">Peringatan: Tunggakan & Overstay</h2>
       <div style="overflow-x: auto; width: 100%;">
         <table class="table">
@@ -176,7 +231,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in dueRentals" :key="r._id">
+          <tr v-for="r in peringatanPaginated" :key="r._id">
             <td>{{ r.customerIds?.[0]?.name }}</td>
             <td>
               <div style="display: flex; align-items: center; gap: 0.625rem;">
@@ -188,7 +243,7 @@
             <td>{{ new Date(r.paidUntil || r.expectedReturnDate).toLocaleDateString('id-ID') }}</td>
             <td>
               <strong style="color: #e74c3c; display: block; font-size: 1rem;">
-                {{ r.currentStatusText?.toUpperCase() }} 
+                {{ r.currentStatusText?.toUpperCase() || r.uiStatus?.toUpperCase() }} 
                 <span style="font-size: 0.8em; color: #666; font-weight: normal;">
                   ({{ r.rentalType === 'Long-Stay' ? 'Bulanan' : 'Harian' }})
                 </span>
@@ -196,23 +251,65 @@
             </td>
             <td>
               <div style="display: flex; gap: 0.625rem; flex-wrap: wrap;">
-                <button class="btn" style="flex: 1; min-width: 6.25rem; text-align: center; padding: 0.75rem; font-size: 1em; font-weight: bold; white-space: nowrap; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;" @click="goToRentals(r.transactionId)">Proses</button>
+                <button class="btn" style="flex: 1; min-width: 6.25rem; text-align: center; padding: 0.5rem; font-size: 1em; font-weight: bold; white-space: nowrap; border-radius: 0.5rem;" @click="goToRentals(r.transactionId)">Proses</button>
                 <a v-if="r.customerIds?.[0]?.telephone" 
                    :href="getWaLink(r.customerIds[0].telephone, getWaWarningText(r))" 
                    target="_blank" 
                    class="btn" 
-                   style="flex: 1; min-width: 6.25rem; text-align: center; padding: 0.75rem; font-size: 1em; font-weight: bold; background: #25D366; text-decoration: none; white-space: nowrap; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.3125rem;"
+                   style="flex: 1; min-width: 6.25rem; text-align: center; padding: 0.5rem; font-size: 1em; font-weight: bold; background: #25D366; text-decoration: none; white-space: nowrap; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.3125rem;"
                    title="Kirim Pengingat WhatsApp">
                   <span style="font-size: 1.2em;">💬</span> WA
                 </a>
               </div>
             </td>
           </tr>
-          <tr v-if="dueRentals.length === 0">
-            <td colspan="5" style="text-align: center; padding: 1.25rem; color: var(--text-muted);">Tidak ada penghuni yang memiliki tunggakan/overstay.</td>
+          <tr v-if="peringatanRentals.length === 0">
+            <td colspan="5" style="text-align: center; padding: 1.25rem; color: var(--text-muted);">Tidak ada peringatan masalah.</td>
           </tr>
         </tbody>
       </table>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.9375rem; font-size: 0.9em;">
+        <span>Total: {{ peringatanRentals.length }} | Halaman {{ pagePeringatan }} dari {{ peringatanTotalPages || 1 }}</span>
+        <div style="display: flex; gap: 0.625rem;">
+          <button class="btn" :disabled="pagePeringatan <= 1" @click="pagePeringatan--" style="padding: 0.25rem 0.625rem; background: #eee; color: #333;">Prev</button>
+          <button class="btn" :disabled="pagePeringatan >= peringatanTotalPages || peringatanTotalPages === 0" @click="pagePeringatan++" style="padding: 0.25rem 0.625rem; background: #eee; color: #333;">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table 3: Daftar Penagihan -->
+    <div class="material-card" style="margin-bottom: 1.875rem; border-left: 0.25rem solid #e67e22;">
+      <h2 style="margin-bottom: 1.25rem; color: #d35400;">Daftar Penagihan</h2>
+      <div style="overflow-x: auto; width: 100%;">
+        <table class="table">
+          <thead><tr><th>Pelanggan</th><th>Kamar</th><th>Total Tunggakan</th><th>Aksi</th></tr></thead>
+          <tbody>
+            <tr v-for="r in penagihanPaginated" :key="r._id">
+              <td>{{ r.customerIds?.[0]?.name }}</td>
+              <td>{{ r.roomId?.roomNumber }}</td>
+              <td><strong style="color: var(--danger);">Rp {{ formatRupiah(r.tunggakanAmount || 0) }}</strong></td>
+              <td>
+                <div style="display: flex; gap: 0.625rem;">
+                  <button class="btn" style="background: #f39c12; color: white;" @click="goToRentals(r.transactionId)">Bayar</button>
+                  <a v-if="r.customerIds?.[0]?.telephone" 
+                     :href="getWaLink(r.customerIds[0].telephone, getWaWarningText(r))" 
+                     target="_blank" 
+                     class="btn" 
+                     style="background: #25D366; text-decoration: none;">💬 WA</a>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="penagihanRentals.length === 0"><td colspan="4" style="text-align: center; padding: 1.25rem;">Tidak ada penagihan.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.9375rem; font-size: 0.9em;">
+        <span>Total: {{ penagihanRentals.length }} | Halaman {{ pagePenagihan }} dari {{ penagihanTotalPages || 1 }}</span>
+        <div style="display: flex; gap: 0.625rem;">
+          <button class="btn" :disabled="pagePenagihan <= 1" @click="pagePenagihan--" style="padding: 0.25rem 0.625rem; background: #eee; color: #333;">Prev</button>
+          <button class="btn" :disabled="pagePenagihan >= penagihanTotalPages || penagihanTotalPages === 0" @click="pagePenagihan++" style="padding: 0.25rem 0.625rem; background: #eee; color: #333;">Next</button>
+        </div>
       </div>
     </div>
 
@@ -256,13 +353,53 @@ const router = useRouter();
 const { getDashboardStats, getCustomers, getRooms } = useApi();
 
 const stats = ref<any>(null);
-const dueRentals = ref<any[]>([]);
+const allActiveRentals = ref<any[]>([]);
 const customers = ref<any[]>([]);
 const rooms = ref<any[]>([]);
 const processing = ref(false);
 const upcomingHoliday = ref<any>(null);
 const waLinkType = ref('App');
 const appConfig = ref<any>({});
+
+// Pagination states
+const pageCheckIn = ref(1);
+const pagePeringatan = ref(1);
+const pagePenagihan = ref(1);
+const itemsPerPage = 5;
+
+// Computed for Tables
+const checkInRentals = computed(() => {
+  const todayZero = new Date();
+  todayZero.setHours(0,0,0,0);
+  return allActiveRentals.value.filter(r => r.uiStatus === 'Booked' && new Date(r.rentalStartTime).setHours(0,0,0,0) <= todayZero.getTime());
+});
+const checkInPaginated = computed(() => checkInRentals.value.slice((pageCheckIn.value - 1) * itemsPerPage, pageCheckIn.value * itemsPerPage));
+const checkInTotalPages = computed(() => Math.ceil(checkInRentals.value.length / itemsPerPage));
+
+const peringatanRentals = computed(() => allActiveRentals.value.filter(r => ['Tunggakan', 'Overstay'].includes(r.currentStatusText || '') || ['Tunggakan', 'Overstay'].includes(r.uiStatus || '')));
+const peringatanPaginated = computed(() => peringatanRentals.value.slice((pagePeringatan.value - 1) * itemsPerPage, pagePeringatan.value * itemsPerPage));
+const peringatanTotalPages = computed(() => Math.ceil(peringatanRentals.value.length / itemsPerPage));
+
+const penagihanRentals = computed(() => allActiveRentals.value.filter(r => r.tunggakanAmount && r.tunggakanAmount > 0));
+const penagihanPaginated = computed(() => penagihanRentals.value.slice((pagePenagihan.value - 1) * itemsPerPage, pagePenagihan.value * itemsPerPage));
+const penagihanTotalPages = computed(() => Math.ceil(penagihanRentals.value.length / itemsPerPage));
+
+const checkIn = async (rentalId: string) => {
+  if (confirm('Konfirmasi bahwa penyewa telah hadir dan setuju untuk Check-In sekarang?')) {
+    try {
+      const res = await fetch(`http://localhost:3001/api/rentals/${rentalId}/check-in`, { method: 'POST' });
+      if (res.ok) {
+        alert('Check-In Berhasil!');
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert('Gagal Check-In: ' + data.error);
+      }
+    } catch(err: any) {
+      alert('Error: ' + err.message);
+    }
+  }
+};
 
 // Tenant Management
 const selectedTenants = ref<any[]>([]);
@@ -443,26 +580,10 @@ const fetchData = async () => {
   
   const activeRes = await fetch('http://localhost:3001/api/rentals');
   const allActive = await activeRes.json();
+  allActiveRentals.value = allActive.filter((r: any) => r.status !== 'Completed' && r.status !== 'Cancelled');
+  
   const todayZero = new Date();
   todayZero.setHours(0,0,0,0);
-  
-  dueRentals.value = allActive.filter((r: any) => {
-    if (r.status === 'Completed' || r.status === 'Cancelled') return false;
-
-    if (r.rentalType === 'Long-Stay' && r.paidUntil) {
-      const pZero = new Date(r.paidUntil);
-      pZero.setHours(0,0,0,0);
-      if (pZero < todayZero) return true;
-    } else if (r.rentalType === 'One-Time' && r.expectedReturnDate) {
-      const eZero = new Date(r.expectedReturnDate);
-      eZero.setHours(0,0,0,0);
-      if (eZero < todayZero) return true;
-    }
-    
-    if (r.status === 'Booked' && !r.depositPaid) return true;
-
-    return false;
-  });
 
   try {
     const eventsRes = await fetch(`http://localhost:3001/api/events?year=${todayZero.getFullYear()}`);

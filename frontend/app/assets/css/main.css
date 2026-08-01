@@ -1,0 +1,158 @@
+:root {
+  --primary-color: #d81b60;
+  --primary-hover: #c2185b;
+  --bg-color: #F8F9FA; /* Off-white / menyejukkan */
+  --surface-color: #ffffff;
+  --surface-border: #e0e0e0;
+  --text-main: #212121;
+  --text-muted: #757575;
+  --success: #4caf50;
+  --danger: #f44336;
+  --base-font-size: 18px;
+}
+
+html {
+  font-size: var(--base-font-size);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+table, th, td, input, select, button, textarea {
+  font-size: 1rem;
+}
+
+body {
+  font-size: 1rem;
+  font-family: Arial, Calibri, sans-serif; /* Clean Sans Serif */
+  background-color: var(--bg-color);
+  /* Gradient overlay to make batik highly visible but elegant */
+  background-image: linear-gradient(rgba(248, 249, 250, 0.70), rgba(248, 249, 250, 0.70));
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: Arial, Calibri, sans-serif;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+h1 { font-size: 2.2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.5rem; }
+
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  background: var(--surface-color);
+  border-right: 1px solid var(--surface-border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 12px 15px;
+  border-radius: 4px; /* Material Design small radius */
+  margin-bottom: 5px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  background-color: #f0f0f0;
+  color: var(--text-main);
+}
+
+.nav-link.router-link-active {
+  background-color: #ede7f6; /* Deep Purple 50 */
+  color: var(--primary-color);
+}
+
+.main-content {
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 400; /* Material Design Headers */
+  margin-bottom: 24px;
+  color: var(--text-main);
+  text-shadow: 2px 2px 10px rgba(255, 255, 255, 0.9), -2px -2px 10px rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.6);
+  display: inline-block;
+  padding: 5px 15px;
+  border-radius: 8px;
+}
+
+.glass-card, .material-card {
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px; /* Standard Material Card */
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.btn {
+  background-color: var(--primary-color);
+  color: #fff; /* White text on primary */
+  border: none;
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-size: 1em;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.input { 
+  width: 100%; 
+  padding: 12px 16px; 
+  margin-bottom: 16px; 
+  border-radius: 4px; 
+  border: 1px solid var(--surface-border); 
+  background: #fff; 
+  color: var(--text-main); 
+  font-size: 1rem;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(98, 0, 234, 0.2);
+}
+
+.table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.table th, .table td { padding: 16px; text-align: left; border-bottom: 1px solid var(--surface-border); font-size: 1rem; }
+.table th { color: var(--text-muted); font-weight: 500; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px;}

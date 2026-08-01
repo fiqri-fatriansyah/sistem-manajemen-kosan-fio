@@ -34,7 +34,7 @@
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; gap: 0.9375rem;">
         <div style="display: flex; gap: 0.625rem; flex-wrap: wrap;">
           <button class="btn" :style="activeTab === 'Aktif' ? 'background: var(--primary-color);' : 'background: #e0e0e0; color: #333;'" @click="activeTab = 'Aktif'">Penyewaan Aktif</button>
-          <button class="btn" :style="activeTab === 'Historikal' ? 'background: var(--primary-color);' : 'background: #e0e0e0; color: #333;'" @click="activeTab = 'Historikal'">Historikal</button>
+          <button class="btn" :style="activeTab === 'Semua' ? 'background: var(--primary-color);' : 'background: #e0e0e0; color: #333;'" @click="activeTab = 'Semua'">Semua Transaksi</button>
         </div>
         <button class="btn" style="background: var(--primary-color); padding: 0.5rem 1.25rem; font-weight: 500;" @click="router.push('/')">+ Penyewaan Baru</button>
       </div>
@@ -100,7 +100,7 @@
               </div>
             </td>
             <td>
-              <span :style="(r.currentStatusText === 'Overstay' || r.uiStatus === 'Overstay') ? 'color: var(--danger); font-weight: bold;' : (r.tunggakanAmount === 0 && r.uiStatus !== 'Booked' ? 'color: var(--success); font-weight: bold;' : 'color: #f39c12; font-weight: bold;')">
+              <span :style="r.uiStatus === 'Cancelled' || r.status === 'Cancelled' ? 'color: #95a5a6; font-weight: bold;' : ((r.currentStatusText?.includes('Overstay') || r.currentStatusText?.includes('Tunggakan') || ['Overstay', 'Tunggakan'].includes(r.uiStatus || '')) ? 'color: var(--danger); font-weight: bold;' : (r.tunggakanAmount === 0 && r.uiStatus !== 'Booked' ? 'color: var(--success); font-weight: bold;' : 'color: #f39c12; font-weight: bold;'))">
                 {{ r.currentStatusText || translateStatus(r.uiStatus) }}
               </span>
             </td>
@@ -127,8 +127,8 @@
               <div v-if="['Active', 'Booked', 'Perlu Pengusiran'].includes(r.uiStatus)" style="display: flex; flex-direction: column; gap: 0.3125rem;">
                 <button v-if="r.uiStatus === 'Perlu Pengusiran'" class="btn" style="background: var(--success); padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap;" @click="resolveEviction(r._id)">Selesai</button>
 
-                <button v-if="r.uiStatus === 'Booked' || (r.rentalType === 'Long-Stay' && r.uiStatus === 'Active')" class="btn" style="background: #f39c12; padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap;" @click="payRent(r)">
-                  {{ r.rentalType === 'Long-Stay' ? 'Bayar Sewa' : 'Bayar Sisa/DP' }}
+                <button v-if="r.uiStatus === 'Booked' || r.tunggakanAmount > 0 || (r.rentalType === 'Long-Stay' && r.uiStatus === 'Active')" class="btn" style="background: #f39c12; padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap;" @click="payRent(r)">
+                  {{ r.rentalType === 'Long-Stay' ? 'Bayar Sewa' : (r.uiStatus === 'Booked' ? 'Bayar Sisa/DP' : 'Bayar Tunggakan') }}
                 </button>
                 <button v-if="r.uiStatus === 'Booked'" class="btn" style="background: #3498db; color: white; padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap; font-weight: bold;" @click="checkIn(r._id)">Check-In</button>
                 <button v-if="r.uiStatus === 'Active'" class="btn" style="background: var(--danger); padding: 0.375rem 0.75rem; font-size: 1em; width: 100%; min-width: 8.125rem; text-align: center; white-space: nowrap;" @click="endStay(r._id)">Akhiri Sewa</button>
@@ -201,6 +201,16 @@ const sortDesc = ref(false);
 
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
+if (typeof window !== 'undefined') {
+  const saved = localStorage.getItem('fio_itemsPerPage');
+  if (saved) itemsPerPage.value = Number(saved);
+}
+
+watch(itemsPerPage, (newVal) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('fio_itemsPerPage', newVal.toString());
+  }
+});
 
 const sortBy = (key: string) => {
   if (sortKey.value === key) {
@@ -216,15 +226,14 @@ const displayedRentals = computed(() => {
   
   if (activeTab.value === 'Aktif') {
     filtered = filtered.filter(r => ['Active', 'Booked', 'Perlu Pengusiran'].includes(r.uiStatus || r.status));
-  } else {
-    filtered = filtered.filter(r => r.status === 'Completed' || r.status === 'Cancelled');
   }
+  // If activeTab is 'Semua', we do not filter out anything.
 
   if (searchTrx.value) {
     const q = searchTrx.value.toLowerCase();
     filtered = filtered.filter(r => {
       if (r.transactionId.toLowerCase().includes(q)) return true;
-      if (r.customerIds && r.customerIds.some((c: any) => c.name.toLowerCase().includes(q))) return true;
+      if (r.customerIds && r.customerIds.some((c: any) => c.name.toLowerCase().includes(q) || (c.telephone && c.telephone.toLowerCase().includes(q)))) return true;
       return false;
     });
   }

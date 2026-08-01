@@ -93,10 +93,12 @@ export const calculateRentalFinancials = (rentalDoc: any) => {
         rental.depositPaid = totalPaid > 0;
         saldoMengendap = totalPaid > expectedTotal ? totalPaid - expectedTotal : 0;
         tunggakanAmount = expectedTotal > totalPaid ? expectedTotal - totalPaid : 0;
-        if (tunggakanAmount > 0) {
-           currentStatusText = 'Tunggakan';
+        if (now > end && tunggakanAmount > 0) {
+           currentStatusText = 'Tunggakan & Overstay';
         } else if (now > end) {
            currentStatusText = 'Overstay';
+        } else if (tunggakanAmount > 0) {
+           currentStatusText = 'Tunggakan';
         } else {
            currentStatusText = 'Terbayar';
         }

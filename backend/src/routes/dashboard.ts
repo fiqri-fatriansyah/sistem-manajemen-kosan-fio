@@ -94,12 +94,24 @@ router.get('/stats', async (req: Request, res: Response) => {
     today.setHours(0, 0, 0, 0);
     const upcomingEvents = await Event.find({ date: { $gte: today } }).sort({ date: 1 }).limit(5);
 
+    let totalPendapatan = 0;
+    let totalPendapatanBulanIni = 0;
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
     const revenuePerMonth = new Array(12).fill(0);
     for (const r of rentals) {
         if (r.payments) {
             for (const p of r.payments) {
-                const month = new Date(p.date).getMonth();
-                revenuePerMonth[month] += p.amount;
+                const d = new Date(p.date);
+                if (d.getFullYear() === currentYear) {
+                  const month = d.getMonth();
+                  revenuePerMonth[month] += p.amount;
+                  if (month === currentMonth) {
+                      totalPendapatanBulanIni += p.amount;
+                  }
+                }
+                totalPendapatan += p.amount;
             }
         }
     }
@@ -152,6 +164,8 @@ router.get('/stats', async (req: Request, res: Response) => {
 
     res.json({
       metrics: {
+        totalPendapatan,
+        totalPendapatanBulanIni,
         tingkatHunian,
         kamarKosong,
         totalTunggakan,

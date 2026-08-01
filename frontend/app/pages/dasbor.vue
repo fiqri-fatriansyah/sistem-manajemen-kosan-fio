@@ -21,12 +21,8 @@
       <!-- 4 Metrics Cards -->
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.875rem;">
         <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #2980b9, #3498db); color: white;">
-          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Tingkat Hunian</h3>
-          <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.tingkatHunian || 0 }}%</div>
-        </div>
-        <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #16a085, #1abc9c); color: white;">
-          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Kamar Kosong Hari Ini</h3>
-          <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.kamarKosong || 0 }}</div>
+          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Pendapatan Bulan Ini</h3>
+          <div style="font-size: 1.8rem; font-weight: bold; margin-top: 0.625rem;">Rp {{ formatRupiah(stats?.metrics?.totalPendapatanBulanIni || 0) }}</div>
         </div>
         <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #c0392b, #e74c3c); color: white;">
           <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Total Tunggakan</h3>
@@ -36,68 +32,76 @@
           <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Penghuni Bermasalah</h3>
           <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.jumlahPenghuniBermasalah || 0 }}</div>
         </div>
-      </div>
-
-      <div class="dashboard-grid">
-        <div class="material-card">
-          <h3 style="margin-bottom: 0; color: #c0392b; text-align: center;">Tunggakan berdasarkan Tipe Room</h3>
-          <div style="height: 25rem; position: relative;">
-            <Pie :data="tunggakanRoomTypeChartData" :options="pieOptions" />
-          </div>
-        </div>
-
-        <div class="material-card">
-          <h3 style="margin-bottom: 0; color: #d35400; text-align: center;">Overstay vs Tunggakan (Jumlah Kasus)</h3>
-          <div style="height: 25rem; position: relative;">
-            <Pie :data="overstayVsTunggakanChartData" :options="pieOptions" />
-          </div>
+        <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #16a085, #1abc9c); color: white;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Kamar Kosong Hari Ini</h3>
+          <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.kamarKosong || 0 }}</div>
         </div>
       </div>
 
+      <!-- GRID 1: Pendapatan & Room Terpopuler -->
       <div class="dashboard-grid">
         <div class="material-card">
           <h3 style="margin-bottom: 0; color: var(--primary-color);">Pendapatan per Bulan (Rp)</h3>
           <div style="height: 25rem; position: relative;">
-            <Bar :data="revenueChartData" :options="barOptions" />
-          </div>
-        </div>
-
-        <div class="material-card">
-          <h3 style="margin-bottom: 0; color: #f39c12;">Top 5 Pelanggan Paling Bernilai (Pendapatan Rp)</h3>
-          <div style="height: 25rem; position: relative;">
-            <Bar :data="topValueCustomersData" :options="barOptions" />
-          </div>
-        </div>
-      </div>
-
-      <div class="dashboard-grid">
-        <div class="material-card">
-          <h3 style="margin-bottom: 0; color: var(--primary-color);">Tren Penyewaan</h3>
-          <div style="height: 25rem; position: relative;">
-            <Line :data="rentalsChartData" :options="lineOptions" />
+            <Bar :data="revenueChartData" :options="barOptions" :plugins="[ChartDataLabels]" />
           </div>
         </div>
 
         <div class="material-card">
           <h3 style="margin-bottom: 0; color: var(--primary-color); text-align: center;">Room Terpopuler</h3>
           <div style="height: 25rem; position: relative;">
-            <Pie :data="popularityChartData" :options="pieOptions" />
+            <Pie :data="popularityChartData" :options="pieOptions" :plugins="[ChartDataLabels]" />
           </div>
         </div>
       </div>
 
+      <!-- GRID 2: Tren Penyewaan & Top 5 Pelanggan -->
+      <div class="dashboard-grid">
+        <div class="material-card">
+          <h3 style="margin-bottom: 0; color: var(--primary-color);">Tren Penyewaan</h3>
+          <div style="height: 25rem; position: relative;">
+            <Line :data="rentalsChartData" :options="lineOptions" :plugins="[ChartDataLabels]" />
+          </div>
+        </div>
+
+        <div class="material-card">
+          <h3 style="margin-bottom: 0; color: #f39c12;">Top 5 Pelanggan Paling Bernilai (Pendapatan Rp)</h3>
+          <div style="height: 25rem; position: relative;">
+            <Bar :data="topValueCustomersData" :options="barOptions" :plugins="[ChartDataLabels]" />
+          </div>
+        </div>
+      </div>
+
+      <!-- GRID 3: Problems (Tunggakan & Overstay) -->
+      <div class="dashboard-grid">
+        <div class="material-card">
+          <h3 style="margin-bottom: 0; color: #c0392b; text-align: center;">Tunggakan berdasarkan Tipe Room</h3>
+          <div style="height: 25rem; position: relative;">
+            <Pie :data="tunggakanRoomTypeChartData" :options="pieOptions" :plugins="[ChartDataLabels]" />
+          </div>
+        </div>
+
+        <div class="material-card">
+          <h3 style="margin-bottom: 0; color: #d35400; text-align: center;">Overstay vs Tunggakan (Jumlah Kasus)</h3>
+          <div style="height: 25rem; position: relative;">
+            <Pie :data="overstayVsTunggakanChartData" :options="pieOptions" :plugins="[ChartDataLabels]" />
+          </div>
+        </div>
+      </div>
+
+      <!-- GRID 4: Pelanggan Bermasalah & Segmentasi Loyalitas -->
       <div class="dashboard-grid">
         <div class="material-card">
           <h3 style="margin-bottom: 0; color: #c0392b; text-align: center;">Pelanggan Bermasalah (Denda / Batal)</h3>
           <div style="height: 25rem; position: relative;">
-            <Bar :data="problematicCustomersData" :options="barOptions" />
+            <Bar :data="problematicCustomersData" :options="barOptions" :plugins="[ChartDataLabels]" />
           </div>
         </div>
 
         <div class="material-card">
           <h3 style="margin-bottom: 0; color: #8e44ad;">Segmentasi Loyalitas Pelanggan</h3>
           <div style="height: 25rem; position: relative;">
-            <Pie :data="loyaltyChartData" :options="pieOptions" />
+            <Pie :data="loyaltyChartData" :options="pieOptions" :plugins="[ChartDataLabels]" />
           </div>
         </div>
       </div>
@@ -107,18 +111,24 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useApi } from '../composables/useApi';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, ArcElement } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Bar, Line, Pie } from 'vue-chartjs';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, ArcElement, ChartDataLabels);
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, ArcElement);
+// ChartDataLabels is passed per-chart via the :plugins prop to avoid legend conflicts
 
 const { getDashboardStats } = useApi();
 const stats = ref<any>(null);
 const allRentals = ref<any[]>([]);
 const pending = ref(true);
 const error = ref(false);
+
+const router = useRouter();
+const route = useRoute();
+const highlightQuery = ref((route.query.search as string) || '');
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -223,7 +233,13 @@ const tunggakanRoomTypeChartData = computed(() => {
   return {
     labels: Object.keys(map).length > 0 ? Object.keys(map) : ['Tidak Ada Tunggakan'],
     datasets: [{
-      backgroundColor: ['#e74c3c', '#f1c40f', '#e67e22', '#c0392b', '#d35400'],
+      backgroundColor: Object.keys(map).length > 0 
+        ? Object.keys(map).map((label, idx) => {
+            const colors = ['#e74c3c', '#f1c40f', '#e67e22', '#c0392b', '#d35400'];
+            if (!highlightQuery.value) return colors[idx % colors.length];
+            return label.toLowerCase() === highlightQuery.value.toLowerCase() ? colors[idx % colors.length] : '#ecf0f1';
+          })
+        : ['#e74c3c'],
       data: Object.keys(map).length > 0 ? Object.values(map) : [1]
     }]
   };
@@ -273,10 +289,16 @@ const popularityChartData = computed(() => {
     popData = [...top4, { label: 'Lainnya', count: others }];
   }
 
+  const labels = popData.map((d: any) => d.label);
+
   return {
-    labels: popData.map((d: any) => d.label),
+    labels,
     datasets: [{
-      backgroundColor: ['#6200ea', '#3700b3', '#03dac6', '#cf6679', '#95a5a6'],
+      backgroundColor: labels.map((label: string, idx: number) => {
+        const colors = ['#6200ea', '#3700b3', '#03dac6', '#cf6679', '#95a5a6'];
+        if (!highlightQuery.value) return colors[idx % colors.length];
+        return label.toLowerCase() === highlightQuery.value.toLowerCase() ? colors[idx % colors.length] : '#ecf0f1';
+      }),
       data: popData.map((d: any) => d.count)
     }]
   };

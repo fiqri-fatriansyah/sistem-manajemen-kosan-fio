@@ -217,6 +217,14 @@
         <textarea v-model="form.msgTemplateEviction" class="input" style="height: 6.25rem; resize: vertical;"></textarea>
       </div>
 
+      <div style="margin-bottom: 0.9375rem;">
+        <label style="display: flex; justify-content: space-between; margin-bottom: 0.3125rem;">
+          <span>Promo Loyalitas (Top 5 Aktif)</span>
+          <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8em; background: #e0e0e0; color: #333;" @click="resetTemplate('msgTemplatePromo')">Reset Default</button>
+        </label>
+        <textarea v-model="form.msgTemplatePromo" class="input" style="height: 6.25rem; resize: vertical;"></textarea>
+      </div>
+
       <button class="btn" @click="saveWhatsAppConfig" :disabled="saving">
         {{ saving ? 'Menyimpan...' : 'Simpan Template Pesan' }}
       </button>
@@ -348,7 +356,8 @@ const defaultTemplates = {
   msgTemplateOverstay: 'Halo {{nama}},\n\nKami mengingatkan bahwa masa sewa kamar {{kamar}} Anda telah habis pada {{tanggal}}.\nMohon segera konfirmasi perpanjangan sewa atau silakan check-out.\n\nTerima kasih.',
   msgTemplateReminder: 'Halo {{nama}},\n\nKami mengingatkan bahwa tagihan sewa kamar {{kamar}} Anda akan jatuh tempo pada {{tanggal}}.\nMohon persiapkan pembayaran Anda atau silakan konfirmasi jika ingin check-out.\n\nTerima kasih.',
   msgTemplateEviction: 'Halo {{nama}},\n\nKami menginformasikan bahwa masa sewa Anda di kamar {{kamar}} telah berakhir dan melewati batas waktu toleransi.\nMohon kesediaannya untuk segera mengosongkan kamar, atau hubungi kami untuk mendiskusikan lebih lanjut.\n\nTerima kasih atas kerja samanya.',
-  msgTemplateCheckIn: 'Halo {{nama}},\n\nKami mengingatkan bahwa jadwal Check-In Anda untuk kamar {{kamar}} adalah hari ini.\nMohon segera melunasi pembayaran awal (jika ada) dan melakukan Check-In di lokasi.\n\nTerima kasih.'
+  msgTemplateCheckIn: 'Halo {{nama}},\n\nKami mengingatkan bahwa jadwal Check-In Anda untuk kamar {{kamar}} adalah hari ini.\nMohon segera melunasi pembayaran awal (jika ada) dan melakukan Check-In di lokasi.\n\nTerima kasih.',
+  msgTemplatePromo: 'Halo {{nama}},\n\nTerima kasih telah menjadi penyewa setia Kosan Fio! Kami ada promo spesial untuk perpanjangan sewa Anda bulan ini.\n\nHubungi kami untuk klaim!'
 };
 
 const pending = ref(true);
@@ -369,7 +378,8 @@ const form = ref<any>({
   msgTemplateOverstay: defaultTemplates.msgTemplateOverstay,
   msgTemplateReminder: defaultTemplates.msgTemplateReminder,
   msgTemplateEviction: defaultTemplates.msgTemplateEviction,
-  msgTemplateCheckIn: defaultTemplates.msgTemplateCheckIn
+  msgTemplateCheckIn: defaultTemplates.msgTemplateCheckIn,
+  msgTemplatePromo: defaultTemplates.msgTemplatePromo
 });
 const wipeAudit = ref(false);
 const wiping = ref(false);
@@ -443,6 +453,7 @@ const fetchConfig = async () => {
       form.value.msgTemplateReminder = data.msgTemplateReminder || defaultTemplates.msgTemplateReminder;
       form.value.msgTemplateEviction = data.msgTemplateEviction || defaultTemplates.msgTemplateEviction;
       form.value.msgTemplateCheckIn = data.msgTemplateCheckIn || defaultTemplates.msgTemplateCheckIn;
+      form.value.msgTemplatePromo = data.msgTemplatePromo || defaultTemplates.msgTemplatePromo;
 
       if (form.value.enableWhatsAppBot) {
         checkWaStatus();

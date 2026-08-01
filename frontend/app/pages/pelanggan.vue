@@ -30,7 +30,7 @@
             <th @click="sortBy('telephone')" style="cursor: pointer;">Telephone <span v-if="sortKey === 'telephone'">{{ sortDesc ? '↓' : '↑' }}</span></th>
             <th @click="sortBy('address')" style="cursor: pointer;">Alamat <span v-if="sortKey === 'address'">{{ sortDesc ? '↓' : '↑' }}</span></th>
             <th @click="sortBy('email')" style="cursor: pointer;">Email <span v-if="sortKey === 'email'">{{ sortDesc ? '↓' : '↑' }}</span></th>
-            <th>Penyewaan Aktif</th>
+            <th>Penyewaan</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -43,8 +43,9 @@
               <td>{{ c.email || '-' }}</td>
               <td>
                 <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8rem; background: var(--primary-hover);" @click.stop="toggleRow(c._id)">
-                  {{ expandedRow === c._id ? 'Tutup' : 'Lihat Sewa' }}
+                  {{ expandedRow === c._id ? 'Tutup' : 'Sewa Aktif' }}
                 </button>
+                <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8rem; margin-left: 0.3125rem; background: #3498db;" @click.stop="router.push({ path: '/penyewaan', query: { search: c.telephone } })">Riwayat</button>
               </td>
               <td>
                 <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.8rem; background: #f39c12;" @click.stop="editCustomer(c)">Edit</button>
@@ -60,9 +61,18 @@
                       <img v-if="r.roomId?.imageUrl" :src="'http://localhost:3001' + r.roomId.imageUrl" style="width: 1.875rem; height: 1.875rem; border-radius: 0.25rem; object-fit: cover;" />
                       <div v-else style="width: 1.875rem; height: 1.875rem; background: #eee; border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; font-size: 0.6em; color: #999;">No Img</div>
                       <div>
-                        <strong>{{ r.roomId.tipeKamar }} ({{ r.roomId.fasilitas }})</strong> - 
-                        <em>Jatuh Tempo: {{ new Date(r.expectedReturnDate).toLocaleDateString('id-ID') }}</em>
-                        <span v-if="new Date(r.expectedReturnDate) < new Date()" style="color: red; font-weight: bold; margin-left: 0.625rem;">[TELAT]</span>
+                        <strong>Room {{ r.roomId?.roomNumber || '-' }}</strong> 
+                        <template v-if="r.rentalType === 'Long-Stay'">
+                          - <em>Jatuh Tempo: Tanggal {{ r.paymentReminderDate || '-' }} setiap bulan</em>
+                        </template>
+                        <template v-else-if="r.expectedReturnDate">
+                          - <em>Jatuh Tempo: {{ new Date(r.expectedReturnDate).toLocaleDateString('id-ID') }}</em>
+                          <span v-if="new Date(r.expectedReturnDate) < new Date()" style="color: red; font-weight: bold; margin-left: 0.625rem;">[TELAT]</span>
+                        </template>
+                        <template v-else>
+                          - <em>Jatuh Tempo: -</em>
+                        </template>
+                        <button class="btn" style="padding: 0.125rem 0.5rem; font-size: 0.7rem; background: var(--primary-color); margin-left: 0.625rem;" @click.stop="router.push({ path: '/penyewaan', query: { search: r.transactionId } })">Lihat Transaksi</button>
                       </div>
                     </li>
                   </ul>
@@ -102,9 +112,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useApi } from '../composables/useApi';
 
+const router = useRouter();
 const { getCustomers, getActiveRentals } = useApi();
 const customers = ref<any[]>([]);
 const activeRentals = ref<any[]>([]);
@@ -119,6 +131,16 @@ const sortKey = ref('name');
 const sortDesc = ref(false);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
+if (typeof window !== 'undefined') {
+  const saved = localStorage.getItem('fio_itemsPerPage');
+  if (saved) itemsPerPage.value = Number(saved);
+}
+
+watch(itemsPerPage, (newVal) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('fio_itemsPerPage', newVal.toString());
+  }
+});
 
 const sortBy = (key: string) => {
   if (sortKey.value === key) {
@@ -167,7 +189,7 @@ const toggleRow = (id: string) => {
 };
 
 const getRentalsForCustomer = (customerId: string) => {
-  return activeRentals.value.filter(r => r.customerId && r.customerId._id === customerId);
+  return activeRentals.value.filter(r => r.customerIds && r.customerIds.some((c: any) => c._id === customerId || c === customerId));
 };
 
 const saveCustomer = async () => {

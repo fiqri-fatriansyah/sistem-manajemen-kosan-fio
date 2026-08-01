@@ -55,7 +55,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { penaltyType, penaltyCost, enableWhatsAppBot, waLinkType, waKwitansiType, appName, appDescription, baseFontSize, overdueGracePeriodDays, msgTemplateBooked, msgTemplateOverdue, msgTemplateOverstay, msgTemplateReminder, msgTemplateEviction, msgTemplateCheckIn } = req.body;
+    const { penaltyType, penaltyCost, enableWhatsAppBot, waLinkType, waKwitansiType, appName, appDescription, baseFontSize, overdueGracePeriodDays, msgTemplateBooked, msgTemplateOverdue, msgTemplateOverstay, msgTemplateReminder, msgTemplateEviction, msgTemplateCheckIn, msgTemplatePromo } = req.body;
     let config = await Config.findOne();
     if (!config) {
       config = new Config();
@@ -83,6 +83,7 @@ router.post('/', async (req: Request, res: Response) => {
     if (msgTemplateReminder !== undefined) config.msgTemplateReminder = msgTemplateReminder;
     if (msgTemplateEviction !== undefined) config.msgTemplateEviction = msgTemplateEviction;
     if (msgTemplateCheckIn !== undefined) config.msgTemplateCheckIn = msgTemplateCheckIn;
+    if (msgTemplatePromo !== undefined) config.msgTemplatePromo = msgTemplatePromo;
 
     await config.save();
 

@@ -121,6 +121,16 @@ const filterRoomTypeId = ref('');
 const sortBy = ref('roomNumber');
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
+if (typeof window !== 'undefined') {
+  const saved = localStorage.getItem('fio_itemsPerPage');
+  if (saved) itemsPerPage.value = Number(saved);
+}
+
+watch(itemsPerPage, (newVal) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('fio_itemsPerPage', newVal.toString());
+  }
+});
 
 const currentDate = ref(new Date());
 

@@ -238,11 +238,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useApi } from '../composables/useApi';
 
 const router = useRouter();
+const route = useRoute();
 const { getRoomTypes, getRooms, getFeatureTags, getActiveRentals } = useApi();
 
 const roomTypes = ref<any[]>([]);
@@ -251,7 +252,7 @@ const featureTags = ref<any[]>([]);
 const activeRentals = ref<any[]>([]);
 const pending = ref(true);
 
-const searchQuery = ref('');
+const searchQuery = ref((route.query.search as string) || '');
 const expandedRTs = ref<string[]>([]);
 
 // RoomType Form
@@ -280,8 +281,10 @@ const fetchData = async () => {
     featureTags.value = await getFeatureTags();
     activeRentals.value = await getActiveRentals();
     
-    // Auto-expand if only 1 room type
-    if (roomTypes.value.length === 1) {
+    // Auto-expand if only 1 room type in the result
+    if (filteredRoomTypes.value.length === 1) {
+      expandedRTs.value = [filteredRoomTypes.value[0]._id];
+    } else if (roomTypes.value.length === 1) {
       expandedRTs.value = [roomTypes.value[0]._id];
     }
   } catch (err) {
@@ -519,7 +522,17 @@ const filteredRoomTypes = computed(() => {
 });
 
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+if (typeof window !== 'undefined') {
+  const saved = localStorage.getItem('fio_itemsPerPage');
+  if (saved) itemsPerPage.value = Number(saved);
+}
+
+watch(itemsPerPage, (newVal) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('fio_itemsPerPage', newVal.toString());
+  }
+});
 
 const totalPages = computed(() => {
   return Math.ceil(filteredRoomTypes.value.length / itemsPerPage.value) || 1;
@@ -531,9 +544,13 @@ const paginatedRoomTypes = computed(() => {
 });
 
 // Reset page when search changes
-import { watch } from 'vue';
 watch(searchQuery, () => {
   currentPage.value = 1;
+  if (filteredRoomTypes.value.length === 1) {
+    expandedRTs.value = [filteredRoomTypes.value[0]._id];
+  } else {
+    expandedRTs.value = [];
+  }
 });
 
 const getFilteredRoomsByType = (rtId: string) => {

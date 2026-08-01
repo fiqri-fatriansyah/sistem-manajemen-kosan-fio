@@ -373,6 +373,8 @@ router.get('/dashboard', async (req: Request, res: Response) => {
     // PDF and Word: Generate Charts
     const width = 800;
     const height = 400;
+    // Register ChartDataLabels globally. Crash is prevented by using display callbacks
+    // that return false for zero/null values so the plugin never positions labels on invisible arcs.
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height, plugins: { modern: [ChartDataLabels as any] } });
     const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 
@@ -382,33 +384,48 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       return value;
     };
 
+    // display callback: skip label if value is falsy/zero to avoid null-element crash
+    const safeDisplay = (ctx: any) => { const v = ctx.dataset.data[ctx.dataIndex]; return v != null && Number(v) > 0; };
+
     const getBarOptions = () => ({
-      layout: { padding: { top: 20, bottom: 10, left: 10, right: 10 } },
-      plugins: { legend: { labels: { padding: 20 } }, datalabels: { display: true, color: '#000', anchor: 'end', align: 'top', formatter: numberFormatter } },
+      layout: { padding: { top: 30, bottom: 10, left: 10, right: 10 } },
+      plugins: {
+        legend: { labels: { padding: 20 } },
+        datalabels: { display: safeDisplay, color: '#000', anchor: 'end' as const, align: 'top' as const, formatter: numberFormatter }
+      },
       scales: { y: { beginAtZero: true, grace: '15%', ticks: { callback: numberFormatter } } }
     });
 
     const getLineOptions = () => ({
-      layout: { padding: { top: 20, bottom: 10, left: 10, right: 10 } },
-      plugins: { legend: { labels: { padding: 20 } }, datalabels: { display: true, color: '#000', anchor: 'end', align: 'top', formatter: numberFormatter } },
+      layout: { padding: { top: 30, bottom: 10, left: 10, right: 10 } },
+      plugins: {
+        legend: { labels: { padding: 20 } },
+        datalabels: { display: safeDisplay, color: '#000', anchor: 'end' as const, align: 'top' as const, formatter: (v: number) => v > 0 ? v : '' }
+      },
       scales: { y: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1 } } }
     });
 
-    const getPieOptions = (totalData: number) => ({
+    const getPieOptions = (hasRealData: boolean) => ({
       layout: { padding: 20 },
-      plugins: { legend: { labels: { padding: 20 } }, datalabels: { display: totalData > 0, color: '#fff', font: { weight: 'bold' as const }, formatter: (val: number) => val > 0 ? val : '' } }
+      plugins: {
+        legend: { labels: { padding: 20 } },
+        datalabels: hasRealData
+          ? { display: safeDisplay, color: '#fff', font: { weight: 'bold' as const }, formatter: (v: number) => v > 0 ? v : '' }
+          : { display: false }
+      }
     });
 
     const revBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: months, datasets: [{ label: 'Pendapatan (Rp)', data: revenuePerMonth, backgroundColor: 'rgba(54, 162, 235, 0.5)' }] }, options: getBarOptions() as any });
     const totalRev = revenuePerMonth.reduce((a, b) => a + b, 0);
-    const maxRev = Math.max(...revenuePerMonth);
-    const maxRevMonth = months[revenuePerMonth.indexOf(maxRev)] || 'N/A';
     const revDesc = `Total pendapatan selama periode ini adalah Rp ${totalRev.toLocaleString('id-ID')}.`;
 
     const popLabels = popSorted.map(p => p[0]);
     const popData = popSorted.map(p => p[1]);
     const totalPop = popData.reduce((a, b) => a + b, 0);
-    const popBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: popLabels, datasets: [{ label: 'Penyewaan', data: popData, backgroundColor: ['#ff9999','#66b3ff','#99ff99','#ffcc99','#95a5a6'] }] }, options: getPieOptions(totalPop) as any });
+    const popChartData = totalPop > 0 ? popData : [1];
+    const popChartLabels = totalPop > 0 ? popLabels : ['Kosong'];
+    const popChartColors = totalPop > 0 ? ['#ff9999','#66b3ff','#99ff99','#ffcc99','#95a5a6'] : ['#e0e0e0'];
+    const popBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: popChartLabels, datasets: [{ label: 'Penyewaan', data: popChartData, backgroundColor: popChartColors }] }, options: getPieOptions(totalPop > 0) as any });
     const popDesc = `Total ${totalPop} penyewaan.`;
 
     const volBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'line', data: { labels: months, datasets: [{ label: 'Volume Sewa', data: rentalsPerMonth, borderColor: 'rgba(75, 192, 192, 1)', fill: false }] }, options: getLineOptions() as any });
@@ -417,20 +434,24 @@ router.get('/dashboard', async (req: Request, res: Response) => {
 
     const valLabels = revSortedC.map(p => p[0]);
     const valData = revSortedC.map(p => p[1]);
-    const valBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: valLabels, datasets: [{ label: 'Total Pendapatan', data: valData, backgroundColor: '#f39c12' }] }, options: getBarOptions() as any });
+    const valBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: valLabels.length ? valLabels : ['Kosong'], datasets: [{ label: 'Total Pendapatan', data: valData.length ? valData : [0], backgroundColor: '#f39c12' }] }, options: getBarOptions() as any });
     const valDesc = `Top 5 pelanggan menyumbang total pendapatan terbesar.`;
 
     const loyTotal = segment1x + segment2x + segment3plus;
-    const loyBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Sewa 1x', 'Sewa 2x', 'Sewa 3x+'], datasets: [{ data: [segment1x, segment2x, segment3plus], backgroundColor: ['#e74c3c', '#f1c40f', '#2ecc71'] }] }, options: getPieOptions(loyTotal) as any });
+    const loyChartData = loyTotal > 0 ? [segment1x, segment2x, segment3plus] : [1];
+    const loyChartColors = loyTotal > 0 ? ['#e74c3c', '#f1c40f', '#2ecc71'] : ['#e0e0e0'];
+    const loyBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Sewa 1x', 'Sewa 2x', 'Sewa 3x+'], datasets: [{ data: loyChartData, backgroundColor: loyChartColors }] }, options: getPieOptions(loyTotal > 0) as any });
     const loyDesc = `Statistik loyalitas pelanggan.`;
 
     const depTotal = depositPaid + depositUnpaid;
-    const depBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Lunas', 'Belum Lunas/Tunggakan'], datasets: [{ data: [depositPaid, depositUnpaid], backgroundColor: ['#3498db', '#e74c3c'] }] }, options: getPieOptions(depTotal) as any });
+    const depChartData = depTotal > 0 ? [depositPaid, depositUnpaid] : [1];
+    const depChartColors = depTotal > 0 ? ['#3498db', '#e74c3c'] : ['#e0e0e0'];
+    const depBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Lunas', 'Belum Lunas/Tunggakan'], datasets: [{ data: depChartData, backgroundColor: depChartColors }] }, options: getPieOptions(depTotal > 0) as any });
     const depDesc = `Terdapat ${depositPaid} penyewaan lunas dan ${depositUnpaid} menunggak.`;
 
     const probLabels = probSorted.map(p => p[0]);
     const probData = probSorted.map(p => p[1]);
-    const probBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: probLabels, datasets: [{ label: 'Poin Masalah (Tunggakan/Batal)', data: probData, backgroundColor: '#c0392b' }] }, options: getBarOptions() as any });
+    const probBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: probLabels.length ? probLabels : ['Kosong'], datasets: [{ label: 'Poin Masalah (Tunggakan/Batal)', data: probData.length ? probData : [0], backgroundColor: '#c0392b' }] }, options: getBarOptions() as any });
     const probDesc = `Pelanggan dengan riwayat tunggakan atau pembatalan.`;
 
     const charts = [

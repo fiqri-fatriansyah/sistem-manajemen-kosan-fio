@@ -10,13 +10,13 @@
         </select>
         <input v-if="filterType === 'historical'" type="month" v-model="filterDate" class="input" style="margin-bottom: 0;" @change="fetchData" />
         
-        <a :href="`http://localhost:3001/api/reports/dashboard?format=pdf&filterType=${filterType}&month=${filterDate.split('-')[1]}&year=${filterDate.split('-')[0]}`" target="_blank">
+        <a :href="`http://localhost:3011/api/reports/dashboard?format=pdf&filterType=${filterType}&month=${filterDate.split('-')[1]}&year=${filterDate.split('-')[0]}`" target="_blank">
           <button class="btn" style="background: #c62828; font-size: 1rem;">Export PDF</button>
         </a>
-        <a :href="`http://localhost:3001/api/reports/dashboard?format=excel&filterType=${filterType}&month=${filterDate.split('-')[1]}&year=${filterDate.split('-')[0]}`" target="_blank">
+        <a :href="`http://localhost:3011/api/reports/dashboard?format=excel&filterType=${filterType}&month=${filterDate.split('-')[1]}&year=${filterDate.split('-')[0]}`" target="_blank">
           <button class="btn" style="background: #107c41; font-size: 1rem;">Export Excel</button>
         </a>
-        <a :href="`http://localhost:3001/api/reports/dashboard?format=word&filterType=${filterType}&month=${filterDate.split('-')[1]}&year=${filterDate.split('-')[0]}`" target="_blank">
+        <a :href="`http://localhost:3011/api/reports/dashboard?format=word&filterType=${filterType}&month=${filterDate.split('-')[1]}&year=${filterDate.split('-')[0]}`" target="_blank">
           <button class="btn" style="background: #2b579a; font-size: 1rem;">Export Word</button>
         </a>
       </div>
@@ -158,7 +158,7 @@ const fetchData = async () => {
     }
     
     // Fetch config for chart font sizes
-    const confRes = await fetch('http://localhost:3001/api/config');
+    const confRes = await fetch('http://localhost:3011/api/config');
     const confData = await confRes.json();
     const baseFont = confData.baseFontSize || 18;
     
@@ -167,7 +167,7 @@ const fetchData = async () => {
     ChartJS.defaults.color = "#212121";
 
     stats.value = await getDashboardStats({ filterType: filterType.value, month, year });
-    const res = await fetch('http://localhost:3001/api/rentals');
+    const res = await fetch('http://localhost:3011/api/rentals');
     allRentals.value = await res.json();
   } catch (err) {
     error.value = true;

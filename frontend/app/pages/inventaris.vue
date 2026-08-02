@@ -113,7 +113,7 @@
         <!-- RoomType Header (Collapsible) -->
         <div style="background: #f8f9fa; padding: 0.9375rem 1.25rem; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between; cursor: pointer;" @click="toggleRT(rt._id)">
           <div style="display: flex; gap: 1.25rem; align-items: center;">
-            <img v-if="rt.imageUrl" :src="'http://localhost:3001' + rt.imageUrl" style="width: 5rem; height: 5rem; object-fit: cover; border-radius: 0.5rem;" />
+            <img v-if="rt.imageUrl" :src="'http://localhost:3011' + rt.imageUrl" style="width: 5rem; height: 5rem; object-fit: cover; border-radius: 0.5rem;" />
             <div v-else style="width: 5rem; height: 5rem; background: #eee; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 0.8em; color: #999;">No Img</div>
             
             <div>
@@ -159,7 +159,7 @@
             <tbody>
               <tr v-for="room in getFilteredRoomsByType(rt._id)" :key="room._id">
                 <td>
-                  <img v-if="room.imageUrl || rt.imageUrl" :src="'http://localhost:3001' + (room.imageUrl || rt.imageUrl)" style="width: 3.75rem; height: 3.75rem; object-fit: cover; border-radius: 0.25rem;" />
+                  <img v-if="room.imageUrl || rt.imageUrl" :src="'http://localhost:3011' + (room.imageUrl || rt.imageUrl)" style="width: 3.75rem; height: 3.75rem; object-fit: cover; border-radius: 0.25rem;" />
                   <div v-else style="width: 3.75rem; height: 3.75rem; background: #f5f5f5; border-radius: 0.25rem;"></div>
                 </td>
                 <td style="font-weight: bold; font-size: 1.1em;">
@@ -313,7 +313,7 @@ const addNewTag = async () => {
   }
   
   try {
-    const res = await fetch('http://localhost:3001/api/rooms/features', {
+    const res = await fetch('http://localhost:3011/api/rooms/features', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: tagName })
@@ -354,7 +354,7 @@ const openRoomTypeForm = (rt: any) => {
     isEditingRT.value = true;
     rtEditId.value = rt._id;
     rtForm.value = { name: rt.name, price: rt.price, priceDaily: rt.priceDaily, features: [...rt.features] };
-    rtImagePreview.value = rt.imageUrl ? `http://localhost:3001${rt.imageUrl}` : null;
+    rtImagePreview.value = rt.imageUrl ? `http://localhost:3011${rt.imageUrl}` : null;
   } else {
     isEditingRT.value = false;
     rtEditId.value = null;
@@ -383,7 +383,7 @@ const saveRoomType = async () => {
   formData.append('features', JSON.stringify(rtForm.value.features));
   if (rtImageFile.value) formData.append('image', rtImageFile.value);
 
-  const url = isEditingRT.value ? `http://localhost:3001/api/rooms/types/${rtEditId.value}` : 'http://localhost:3001/api/rooms/types';
+  const url = isEditingRT.value ? `http://localhost:3011/api/rooms/types/${rtEditId.value}` : 'http://localhost:3011/api/rooms/types';
   const method = isEditingRT.value ? 'PUT' : 'POST';
 
   try {
@@ -419,7 +419,7 @@ const openRoomForm = (r: any, prefilledTypeId: string = '') => {
       priceMonthly: r.priceMonthly || '',
       priceDaily: r.priceDaily || ''
     };
-    rImagePreview.value = r.imageUrl ? `http://localhost:3001${r.imageUrl}` : null;
+    rImagePreview.value = r.imageUrl ? `http://localhost:3011${r.imageUrl}` : null;
   } else {
     isEditingRoom.value = false;
     rEditId.value = null;
@@ -455,7 +455,7 @@ const saveRoom = async () => {
   formData.append('features', JSON.stringify(rForm.value.features));
   if (rImageFile.value) formData.append('image', rImageFile.value);
 
-  const url = isEditingRoom.value ? `http://localhost:3001/api/rooms/${rEditId.value}` : 'http://localhost:3001/api/rooms';
+  const url = isEditingRoom.value ? `http://localhost:3011/api/rooms/${rEditId.value}` : 'http://localhost:3011/api/rooms';
   const method = isEditingRoom.value ? 'PUT' : 'POST';
 
   try {
@@ -470,7 +470,7 @@ const saveRoom = async () => {
 
 const deleteRoom = async (id: string) => {
   if (confirm('Yakin ingin menghapus room ini?')) {
-    await fetch(`http://localhost:3001/api/rooms/${id}`, { method: 'DELETE' });
+    await fetch(`http://localhost:3011/api/rooms/${id}`, { method: 'DELETE' });
     await fetchData();
   }
 };
@@ -478,7 +478,7 @@ const deleteRoom = async (id: string) => {
 const changeRoomStatus = async (id: string, newStatus: string) => {
   const formData = new FormData();
   formData.append('status', newStatus);
-  await fetch(`http://localhost:3001/api/rooms/${id}`, { method: 'PUT', body: formData });
+  await fetch(`http://localhost:3011/api/rooms/${id}`, { method: 'PUT', body: formData });
   await fetchData();
 };
 

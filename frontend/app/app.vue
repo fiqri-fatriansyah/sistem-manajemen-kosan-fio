@@ -10,7 +10,7 @@ import { useHead } from '#imports';
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:3001/api/config');
+    const res = await fetch('http://localhost:3011/api/config');
     const data = await res.json();
     if (data && data.baseFontSize) {
       const userMin = Math.max(1, data.baseFontSize);
@@ -26,7 +26,7 @@ onMounted(async () => {
         link: [
           {
             rel: 'icon',
-            href: 'http://localhost:3001' + data.appFaviconUrl
+            href: 'http://localhost:3011' + data.appFaviconUrl
           }
         ]
       });

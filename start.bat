@@ -41,10 +41,10 @@ if not exist "frontend\node_modules\" (
 )
 
 :: 4. Jalankan Server
-echo [INFO] Memulai Backend Server di background (Port 3001)...
+echo [INFO] Memulai Backend Server di background (Port 3011)...
 start "Sistem Room - Backend" cmd /k "cd backend && npm run dev"
 
-echo [INFO] Memulai Frontend Server di background (Port 3000)...
+echo [INFO] Memulai Frontend Server di background (Port 3010)...
 start "Sistem Room - Frontend" cmd /k "cd frontend && npm run dev"
 
 echo.
@@ -53,7 +53,9 @@ echo SETUP SELESAI!
 echo Jendela terminal baru telah dibuka untuk menjalankan server.
 echo.
 echo Silakan buka browser Anda dan akses:
-echo Frontend: http://localhost:3000
-echo Backend:  http://localhost:3001
+echo Frontend: http://localhost:3010
+echo Backend:  http://localhost:3011
 echo =======================================================
+echo Membuka browser...
+start http://localhost:3010
 pause

@@ -2,7 +2,7 @@
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
       <h1 class="page-title">Audit Log</h1>
-      <a href="http://localhost:3001/api/audit/export/pdf" target="_blank">
+      <a href="http://localhost:3011/api/audit/export/pdf" target="_blank">
         <button class="btn" style="background: #c62828;">Print PDF Log</button>
       </a>
     </div>
@@ -47,7 +47,7 @@ const pending = ref(true);
 const fetchLogs = async () => {
   pending.value = true;
   try {
-    const res = await fetch('http://localhost:3001/api/audit');
+    const res = await fetch('http://localhost:3011/api/audit');
     logs.value = await res.json();
   } catch (err) {
     console.error(err);

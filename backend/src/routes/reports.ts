@@ -403,12 +403,13 @@ router.get('/dashboard', async (req: Request, res: Response) => {
     }
     const revSortedC = Object.entries(customerRevenue).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-    let segment1x = 0; let segment2x = 0; let segment3plus = 0;
+    const segmentCounts: Record<number, number> = {};
     for (const count of Object.values(customerCounts)) {
-      if (count === 1) segment1x++;
-      else if (count === 2) segment2x++;
-      else if (count >= 3) segment3plus++;
+      segmentCounts[count] = (segmentCounts[count] || 0) + 1;
     }
+    const sortedSegments = Object.entries(segmentCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
 
     let bsLunas = 0; let bsTunggakan = 0; let bsOverstay = 0; let bsBatal = 0;
     for (const r of rentals) {
@@ -423,8 +424,15 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       for (const cId of r.customerIds || []) {
           const cKey = cId?.name || 'Unknown';
           if (!customerIssues[cKey]) customerIssues[cKey] = 0;
-          if (r.status === 'Cancelled') customerIssues[cKey] += 1;
-          if (r.tunggakanAmount && r.tunggakanAmount > 0) customerIssues[cKey] += (r.tunggakanAmount / 100000);
+          if (r.status === 'Cancelled') customerIssues[cKey] += 0;
+          if (r.tunggakanAmount && r.tunggakanAmount > 0) {
+            let daysOverdue = 0;
+            const targetDate = r.paidUntil || r.expectedReturnDate;
+            if (targetDate && new Date(targetDate) < new Date()) {
+              daysOverdue = Math.floor((new Date().getTime() - new Date(targetDate).getTime()) / (1000 * 3600 * 24));
+            }
+            customerIssues[cKey] += daysOverdue;
+          }
       }
     }
     const probSorted = Object.entries(customerIssues).filter(x => x[1] > 0).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -511,8 +519,11 @@ router.get('/dashboard', async (req: Request, res: Response) => {
     const valBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: valLabels.length ? valLabels : ['Kosong'], datasets: [{ label: 'Total Pendapatan', data: valData.length ? valData : [0], backgroundColor: '#f39c12' }] }, options: getBarOptions() as any });
     const valDesc = `Daftar 5 pelanggan dengan sumbangan pendapatan kumulatif tertinggi.`;
 
-    const loyTotal = segment1x + segment2x + segment3plus;
-    const loyBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Sewa 1 Bulan', 'Sewa 2 Bulan', 'Sewa 3 Bulan+'], datasets: [{ data: loyTotal > 0 ? [segment1x, segment2x, segment3plus] : [1], backgroundColor: loyTotal > 0 ? ['#e74c3c', '#f1c40f', '#2ecc71'] : ['#e0e0e0'] }] }, options: getPieOptions(loyTotal > 0) as any });
+    const loyLabels = sortedSegments.map(s => `Sewa ${s[0]} Bulan`);
+    const loyData = sortedSegments.map(s => s[1]);
+    const loyTotal = loyData.reduce((a, b) => a + b, 0);
+    const loyColors = ['#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#3498db'];
+    const loyBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: loyTotal > 0 ? loyLabels : ['Kosong'], datasets: [{ data: loyTotal > 0 ? loyData : [1], backgroundColor: loyTotal > 0 ? loyColors.slice(0, loyData.length) : ['#e0e0e0'] }] }, options: getPieOptions(loyTotal > 0) as any });
     const loyDesc = `Segmentasi loyalitas.`;
 
     const bsTotal = bsLunas + bsTunggakan + bsOverstay + bsBatal;
@@ -521,7 +532,7 @@ router.get('/dashboard', async (req: Request, res: Response) => {
 
     const probLabels = probSorted.map(p => p[0]);
     const probData = probSorted.map(p => p[1]);
-    const probBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: probLabels.length ? probLabels : ['Kosong'], datasets: [{ label: 'Poin Masalah (Tunggakan/Batal)', data: probData.length ? probData : [0], backgroundColor: '#c0392b' }] }, options: getBarOptions() as any });
+    const probBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: probLabels.length ? probLabels : ['Kosong'], datasets: [{ label: 'Hari Menunggak', data: probData.length ? probData : [0], backgroundColor: '#c0392b' }] }, options: getBarOptions() as any });
     const probDesc = `Daftar 5 pelanggan bermasalah.`;
 
     const charts = [

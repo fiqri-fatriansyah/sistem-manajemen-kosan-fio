@@ -99,17 +99,18 @@ router.get('/stats', async (req: Request, res: Response) => {
       if (c) topValueCustomers.push({ label: c.name, revenue: rev });
     }
 
-    let segment1x = 0; let segment2x = 0; let segment3plus = 0;
+    const segmentCounts: Record<number, number> = {};
     for (const count of Object.values(customerCounts)) {
-      if (count === 1) segment1x++;
-      else if (count === 2) segment2x++;
-      else if (count >= 3) segment3plus++;
+      segmentCounts[count] = (segmentCounts[count] || 0) + 1;
     }
-    const customerLoyalty = [
-      { label: 'Sewa 1 Bulan', count: segment1x },
-      { label: 'Sewa 2 Bulan', count: segment2x },
-      { label: 'Sewa 3 Bulan+', count: segment3plus },
-    ];
+    const sortedSegments = Object.entries(segmentCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    const customerLoyalty = sortedSegments.map(([months, customers]) => ({
+      label: `Sewa ${months} Bulan`,
+      count: customers
+    }));
 
     let depositPaid = 0; let depositUnpaid = 0;
     for (const r of filteredRentals) {
@@ -187,8 +188,15 @@ router.get('/stats', async (req: Request, res: Response) => {
       for (const cId of r.customerIds || []) {
           const idStr = cId.toString();
           if (!customerIssues[idStr]) customerIssues[idStr] = 0;
-          if (r.status === 'Cancelled') customerIssues[idStr] += 1;
-          if (r.tunggakanAmount && r.tunggakanAmount > 0) customerIssues[idStr] += (r.tunggakanAmount / 100000); 
+          if (r.status === 'Cancelled') customerIssues[idStr] += 0; // We don't add days for simply cancelled anymore unless we want to track it
+          if (r.tunggakanAmount && r.tunggakanAmount > 0) {
+            let daysOverdue = 0;
+            const targetDate = r.paidUntil || r.expectedReturnDate;
+            if (targetDate && new Date(targetDate) < new Date()) {
+              daysOverdue = Math.floor((new Date().getTime() - new Date(targetDate).getTime()) / (1000 * 3600 * 24));
+            }
+            customerIssues[idStr] += daysOverdue;
+          }
       }
     }
     const sortedIssues = Object.entries(customerIssues).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);

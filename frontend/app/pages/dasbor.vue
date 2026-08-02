@@ -424,7 +424,7 @@ const problematicCustomersData = computed(() => {
   return {
     labels: data.map((d: any) => d.label),
     datasets: [{
-      label: 'Poin Masalah (Batal / Denda)',
+      label: 'Hari Menunggak',
       backgroundColor: '#e74c3c',
       data: data.map((d: any) => d.count)
     }]

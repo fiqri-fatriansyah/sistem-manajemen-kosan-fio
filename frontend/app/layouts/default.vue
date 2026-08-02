@@ -14,6 +14,7 @@
         <NuxtLink to="/" class="nav-link" exact>Utama</NuxtLink>
         <NuxtLink to="/penyewaan" class="nav-link">Penyewaan</NuxtLink>
         <NuxtLink to="/inventaris" class="nav-link">Inventaris</NuxtLink>
+        <NuxtLink to="/pengeluaran" class="nav-link">Pengeluaran</NuxtLink>
         <NuxtLink to="/kalender" class="nav-link">Kalender</NuxtLink>
         <NuxtLink to="/pelanggan" class="nav-link">Pelanggan</NuxtLink>
         <NuxtLink to="/dasbor" class="nav-link">Dasbor</NuxtLink>

@@ -209,6 +209,7 @@ router.post('/', async (req: Request, res: Response) => {
     // Cancel the unpaid overlapping bookings
     for (const cr of needsToCancelUnpaid) {
       cr.status = 'Cancelled';
+      cr.cancellationReason = 'Sistem: Dibatalkan otomatis karena ruangan dipesan dan dibayar oleh pelanggan lain yang menimpa jadwal ini.';
       await cr.save();
     }
     
@@ -460,6 +461,7 @@ router.post('/:id/end-stay', async (req: Request, res: Response) => {
 // Cancel Rental
 router.post('/:id/cancel', async (req: Request, res: Response) => {
   try {
+    const { reason } = req.body;
     const rental = await RentalTransaction.findById(req.params.id);
     if (!rental) return res.status(404).json({ error: 'Rental not found' });
     if (rental.status === 'Completed' || rental.status === 'Cancelled') {
@@ -467,6 +469,9 @@ router.post('/:id/cancel', async (req: Request, res: Response) => {
     }
 
     rental.status = 'Cancelled';
+    if (reason) {
+      rental.cancellationReason = reason;
+    }
     await rental.save();
     await Room.findByIdAndUpdate(rental.roomId, { status: 'Available' });
 

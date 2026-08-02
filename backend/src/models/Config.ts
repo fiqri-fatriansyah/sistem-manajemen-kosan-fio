@@ -18,6 +18,7 @@ export interface IConfig extends Document {
   msgTemplateEviction: string;
   msgTemplateCheckIn: string;
   msgTemplatePromo: string;
+  calendarOverdueToleranceMonths: number;
 }
 
 const ConfigSchema: Schema = new Schema({
@@ -25,13 +26,14 @@ const ConfigSchema: Schema = new Schema({
   appDescription: { type: String, default: 'Platform manajemen kosan terbaik.' },
   appLogoUrl: { type: String, default: '' },
   appFaviconUrl: { type: String, default: '' },
-  penaltyType: { type: String, enum: ['Fixed', 'Percentage'], default: 'Fixed' },
+  penaltyType: { type: String, enum: ['Fixed', 'Percentage', 'None', 'One-time', 'Daily', 'Weekly'], default: 'None' },
   penaltyCost: { type: Number, default: 50000 },
   enableWhatsAppBot: { type: Boolean, default: false },
   waLinkType: { type: String, enum: ['App', 'Web'], default: 'App' },
   waKwitansiType: { type: String, enum: ['Text', 'Link'], default: 'Text' },
-  overdueGracePeriodDays: { type: Number, default: 3 },
+  overdueGracePeriodDays: { type: Number, default: 30 },
   baseFontSize: { type: Number, default: 18 },
+  calendarOverdueToleranceMonths: { type: Number, default: 1 },
   msgTemplateBooked: { type: String, default: 'Halo {{nama}},\n\nKami mengingatkan bahwa Anda memiliki booking untuk kamar {{kamar}} yang belum lunas/DP. Mohon segera diselesaikan sebesar Rp {{nominal}}.\n\nTerima kasih.' },
   msgTemplateOverdue: { type: String, default: 'Halo {{nama}},\n\nKami mengingatkan bahwa tagihan sewa kamar {{kamar}} Anda telah melewati batas waktu (jatuh tempo pada {{tanggal}}). Mohon segera melunasi tunggakan sebesar Rp {{nominal}}.\n\nTerima kasih.' },
   msgTemplateOverstay: { type: String, default: 'Halo {{nama}},\n\nKami mengingatkan bahwa masa sewa kamar {{kamar}} Anda telah habis pada {{tanggal}}.\nMohon segera konfirmasi perpanjangan sewa atau silakan check-out.\n\nTerima kasih.' },

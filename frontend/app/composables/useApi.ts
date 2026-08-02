@@ -24,6 +24,14 @@ export const useApi = () => {
     getCustomers: () => fetchApi('/customers'),
     getActiveRentals: () => fetchApi('/rentals/active'),
     getEvents: () => fetchApi('/events'),
-    getDashboardStats: () => fetchApi('/dashboard/stats')
+    getDashboardStats: (params?: any) => {
+      if (params) {
+        // filter out undefined values
+        const cleanParams = Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== undefined));
+        const query = new URLSearchParams(cleanParams as any).toString();
+        return fetchApi(`/dashboard/stats?${query}`);
+      }
+      return fetchApi('/dashboard/stats');
+    }
   };
 };

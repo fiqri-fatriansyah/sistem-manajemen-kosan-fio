@@ -173,12 +173,8 @@
     <!-- 4 Metrics Cards -->
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.875rem;">
       <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #2980b9, #3498db); color: white;">
-        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Tingkat Hunian</h3>
-        <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.tingkatHunian || 0 }}%</div>
-      </div>
-      <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #16a085, #1abc9c); color: white;">
-        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Kamar Kosong Hari Ini</h3>
-        <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.kamarKosong || 0 }}</div>
+        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Keuntungan Bersih (Bulan Ini)</h3>
+        <div style="font-size: 1.8rem; font-weight: bold; margin-top: 0.625rem;">Rp {{ formatRupiah(stats?.metrics?.totalPendapatanBulanIni || 0) }}</div>
       </div>
       <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #c0392b, #e74c3c); color: white;">
         <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Total Tunggakan</h3>
@@ -187,6 +183,10 @@
       <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #d35400, #e67e22); color: white;">
         <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Penghuni Bermasalah</h3>
         <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.jumlahPenghuniBermasalah || 0 }}</div>
+      </div>
+      <div class="material-card" style="text-align: center; background: linear-gradient(135deg, #16a085, #1abc9c); color: white;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.625rem; font-weight: normal; opacity: 0.9;">Kamar Kosong Hari Ini</h3>
+        <div style="font-size: 2.5rem; font-weight: bold;">{{ stats?.metrics?.kamarKosong || 0 }}</div>
       </div>
     </div>
 
@@ -373,7 +373,7 @@
               <span style="font-size: 1.2rem; font-weight: bold; color: #aaa;">#{{ idx + 1 }}</span>
               <div style="line-height: 1.4;">
                 <strong style="font-size: 1.1em;">{{ c.customer.name }}</strong><br/>
-                <span style="font-size: 1em; color: var(--text-muted);">Total: <strong style="color: var(--success);">{{ c.count }}</strong> Transaksi</span>
+                <span style="font-size: 1em; color: var(--text-muted);">Total: <strong style="color: var(--success);">{{ c.count }}</strong> Bulan Sewa</span>
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">

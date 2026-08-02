@@ -11,6 +11,7 @@ export interface IRentalTransaction extends Document {
   paidUntil?: Date; // Tracks advance payments for Long-Stay
   rentalEndTime?: Date;
   status: 'Booked' | 'Active' | 'Completed' | 'Cancelled';
+  cancellationReason?: string;
   amountToPay?: number;
   depositAmount: number;
   depositPaid: boolean;
@@ -32,6 +33,7 @@ const RentalTransactionSchema: Schema = new Schema({
   paidUntil: { type: Date },
   rentalEndTime: { type: Date },
   status: { type: String, enum: ['Booked', 'Active', 'Completed', 'Cancelled'], default: 'Booked' },
+  cancellationReason: { type: String },
   amountToPay: { type: Number },
   depositAmount: { type: Number, default: 0 },
   depositPaid: { type: Boolean, default: false },

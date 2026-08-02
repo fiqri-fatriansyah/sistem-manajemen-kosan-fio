@@ -10,7 +10,7 @@ import { calculateRentalFinancials } from './rentals';
 
 const router = Router();
 
-const generatePdf = (res: Response, title: string, data: any[], columns: string[], filename: string, charts?: { image: Buffer, description: string }[], conclusion?: string) => {
+const generatePdf = (res: Response, title: string, data: any[], columns: string[], filename: string, charts?: { image: Buffer, description: string }[], conclusion?: string, annexData?: any[], annexColumns?: string[]) => {
   const doc = new PDFDocument();
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
@@ -75,14 +75,20 @@ const generatePdf = (res: Response, title: string, data: any[], columns: string[
     doc.moveDown();
   }
 
+
   if (charts) {
+    // We render charts on new pages
+    doc.addPage();
+    doc.fontSize(16).font('Helvetica-Bold').text('Visualisasi Data', { align: 'center' });
+    doc.moveDown(2);
+
     charts.forEach((chart, idx) => {
       const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
       const imgWidth = Math.min(pageWidth, 500);
       const imgHeight = imgWidth * (400 / 800); 
       
       const spaceNeeded = imgHeight + 60;
-      if (doc.y + spaceNeeded > doc.page.height - doc.page.margins.bottom) {
+      if (idx > 0 && doc.y + spaceNeeded > doc.page.height - doc.page.margins.bottom) {
         doc.addPage();
       } else if (idx > 0) {
         doc.moveDown(3);
@@ -94,10 +100,54 @@ const generatePdf = (res: Response, title: string, data: any[], columns: string[
       doc.fontSize(11).text(chart.description, { align: 'justify' });
     });
   }
+
+  if (annexData && annexColumns && annexData.length > 0) {
+    doc.addPage();
+    doc.fontSize(16).font('Helvetica-Bold').text('Lampiran: Data Transaksi (Annex)', { align: 'center' });
+    doc.moveDown(2);
+    
+    const tableTop = doc.y;
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const columnWidth = pageWidth / annexColumns.length;
+    let currentY = tableTop;
+
+    doc.fontSize(8).font('Helvetica-Bold');
+    annexColumns.forEach((col, i) => {
+      doc.text(col, doc.page.margins.left + (i * columnWidth), currentY, { width: columnWidth, align: 'left' });
+    });
+    
+    currentY += 15;
+    doc.moveTo(doc.page.margins.left, currentY).lineTo(doc.page.width - doc.page.margins.right, currentY).lineWidth(1).strokeColor('#000000').stroke();
+    currentY += 10;
+
+    doc.font('Helvetica');
+    annexData.forEach(row => {
+      let maxRowHeight = 15;
+      annexColumns.forEach((col) => {
+        const textStr = String(row[col] || '-');
+        const h = doc.heightOfString(textStr, { width: columnWidth - 5 });
+        if (h > maxRowHeight) maxRowHeight = h;
+      });
+
+      if (currentY + maxRowHeight > doc.page.height - doc.page.margins.bottom - 20) {
+        doc.addPage();
+        currentY = doc.page.margins.top;
+      }
+      
+      annexColumns.forEach((col, i) => {
+        doc.text(String(row[col] || '-'), doc.page.margins.left + (i * columnWidth), currentY, { width: columnWidth - 5, align: 'left' });
+      });
+      currentY += maxRowHeight + 5;
+      
+      doc.moveTo(doc.page.margins.left, currentY).lineTo(doc.page.width - doc.page.margins.right, currentY).lineWidth(0.5).strokeColor('#cccccc').stroke();
+      currentY += 10;
+    });
+  }
+
   doc.end();
 };
 
-const generateDocx = async (res: Response, title: string, data: any[], columns: string[], filename: string, charts?: { image: Buffer, description: string }[], conclusion?: string) => {
+const generateDocx = async (res: Response, title: string, data: any[], columns: string[], filename: string, charts?: { image: Buffer, description: string }[], conclusion?: string, annexData?: any[], annexColumns?: string[]) => {
   const children: any[] = [
     new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 32 })] })
   ];
@@ -133,6 +183,21 @@ const generateDocx = async (res: Response, title: string, data: any[], columns: 
       }));
       children.push(new Paragraph({ text: chart.description }));
     });
+  }
+
+
+  if (annexData && annexColumns && annexData.length > 0) {
+    children.push(new Paragraph({ text: '' }));
+    children.push(new Paragraph({ children: [new TextRun({ text: 'Lampiran: Data Transaksi (Annex)', bold: true, size: 28 })] }));
+    const annexTableRows = [
+      new TableRow({ children: annexColumns.map(c => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: c, bold: true })] })] })) })
+    ];
+    annexData.forEach(row => {
+      annexTableRows.push(new TableRow({
+        children: annexColumns.map(c => new TableCell({ children: [new Paragraph(String(row[c] || '-'))] }))
+      }));
+    });
+    children.push(new Table({ rows: annexTableRows }));
   }
 
   const doc = new Document({
@@ -255,24 +320,52 @@ router.get('/financial', async (req: Request, res: Response) => {
 // For Dashboard logic we can keep it largely the same but ensure we use totalPaid for charts
 router.get('/dashboard', async (req: Request, res: Response) => {
   try {
-    const { format } = req.query; 
-    let rawRentals = await RentalTransaction.find().populate('customerIds').populate({ path: 'roomId', populate: { path: 'roomTypeId' } });
-    const rentals = rawRentals.map(calculateRentalFinancials);
+    const { format, filterType, month, year } = req.query; 
+    let allRentals = await RentalTransaction.find().populate('customerIds').populate({ path: 'roomId', populate: { path: 'roomTypeId' } });
     
+    const targetMonth = month ? parseInt(month as string, 10) : new Date().getMonth();
+    const targetYear = year ? parseInt(year as string, 10) : new Date().getFullYear();
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    
+    const targetStart = new Date(targetYear, targetMonth, 1);
+    const targetEnd = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
+    
+    const rawFiltered = (!filterType || filterType === 'all') ? allRentals : allRentals.filter(r => {
+      const start = new Date(r.rentalStartTime);
+      let end = new Date();
+      if (r.status === 'Completed' && r.rentalEndTime) end = new Date(r.rentalEndTime);
+      else if (r.status === 'Cancelled' && r.rentalEndTime) end = new Date(r.rentalEndTime);
+      else if (r.paidUntil && new Date(r.paidUntil) > end) end = new Date(r.paidUntil);
+      return start <= targetEnd && end >= targetStart;
+    });
+
+    const rentals = rawFiltered.map(calculateRentalFinancials);
+    
+    let totalPendapatanBulanIni = 0;
     const revenuePerMonth = new Array(12).fill(0);
     const rentalsPerMonth = new Array(12).fill(0);
 
-    for (const r of rentals) {
+    for (const r of allRentals.map(calculateRentalFinancials)) {
       if (r.payments) {
         for (const p of r.payments) {
-           const month = new Date(p.date).getMonth();
-           revenuePerMonth[month] += p.amount;
+           const d = new Date(p.date);
+           const pMonth = d.getMonth();
+           const pYear = d.getFullYear();
+           if (pYear === targetYear) {
+             revenuePerMonth[pMonth] += p.amount;
+           }
+           if (filterType === 'all') {
+             totalPendapatanBulanIni += p.amount;
+           } else if (pMonth === targetMonth && pYear === targetYear) {
+             totalPendapatanBulanIni += p.amount;
+           }
         }
       }
-      const startMonth = new Date(r.rentalStartTime).getMonth();
-      rentalsPerMonth[startMonth]++;
+      const dStart = new Date(r.rentalStartTime);
+      if (dStart.getFullYear() === targetYear) {
+        rentalsPerMonth[dStart.getMonth()]++;
+      }
     }
-    let totalRevenue = revenuePerMonth.reduce((a,b)=>a+b, 0);
 
     const kebayaCounts: Record<string, any> = {};
     const customerCounts: Record<string, number> = {};
@@ -288,9 +381,17 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       const cIds = r.customerIds || [];
       const paymentsTotal = r.totalPaid || 0;
       
+      const start = new Date(r.rentalStartTime).getTime();
+      let end = new Date().getTime();
+      if (r.status === 'Completed' && r.rentalEndTime) end = new Date(r.rentalEndTime).getTime();
+      else if (r.status === 'Cancelled' && r.rentalEndTime) end = new Date(r.rentalEndTime).getTime();
+      else if (r.paidUntil && new Date(r.paidUntil).getTime() > end) end = new Date(r.paidUntil).getTime();
+      
+      const monthsDuration = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24 * 30)));
+
       for (const cId of cIds) {
           const cKey = cId?.name || 'Unknown';
-          customerCounts[cKey] = (customerCounts[cKey] || 0) + 1;
+          customerCounts[cKey] = (customerCounts[cKey] || 0) + monthsDuration;
           customerRevenue[cKey] = (customerRevenue[cKey] || 0) + (paymentsTotal / cIds.length);
       }
     }
@@ -309,12 +410,12 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       else if (count >= 3) segment3plus++;
     }
 
-    let depositPaid = 0; let depositUnpaid = 0;
+    let bsLunas = 0; let bsTunggakan = 0; let bsOverstay = 0; let bsBatal = 0;
     for (const r of rentals) {
-      if (['Active', 'Booked'].includes(r.uiStatus)) {
-        if (r.depositPaid) depositPaid++;
-        else depositUnpaid++;
-      }
+      if (r.status === 'Cancelled') bsBatal++;
+      else if (r.currentStatusText === 'Overstay' || r.uiStatus === 'Overstay') bsOverstay++;
+      else if (r.tunggakanAmount && r.tunggakanAmount > 0) bsTunggakan++;
+      else bsLunas++;
     }
 
     const customerIssues: Record<string, number> = {};
@@ -323,149 +424,118 @@ router.get('/dashboard', async (req: Request, res: Response) => {
           const cKey = cId?.name || 'Unknown';
           if (!customerIssues[cKey]) customerIssues[cKey] = 0;
           if (r.status === 'Cancelled') customerIssues[cKey] += 1;
-          if (r.tunggakanAmount && r.tunggakanAmount > 0) customerIssues[cKey] += (r.tunggakanAmount / 100000); // 1 point per 100k overdue
+          if (r.tunggakanAmount && r.tunggakanAmount > 0) customerIssues[cKey] += (r.tunggakanAmount / 100000);
       }
     }
     const probSorted = Object.entries(customerIssues).filter(x => x[1] > 0).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-    const computedRentals = rentals; // already mapped in line 259
     let totalTunggakan = 0;
-    for (const r of computedRentals) {
+    for (const r of rentals) {
       totalTunggakan += r.tunggakanAmount || 0;
     }
 
     const rooms = await Room.find({ status: { $ne: 'Maintenance' }});
     const totalRooms = rooms.length;
-    const now = new Date();
-    const activeRentals = computedRentals.filter(r => 
+    const occupancyDate = (!filterType || filterType === 'all') ? new Date() : targetEnd;
+    const activeRentals = rentals.filter(r => 
       ['Active', 'Booked'].includes(r.uiStatus) && 
-      (new Date(r.rentalStartTime) <= now) &&
-      (!r.expectedReturnDate || new Date(r.expectedReturnDate) >= now)
+      (new Date(r.rentalStartTime) <= occupancyDate) &&
+      (!r.expectedReturnDate || new Date(r.expectedReturnDate) >= occupancyDate)
     );
     const occupiedRoomsCount = new Set(activeRentals.map(r => r.roomId ? (r.roomId as any)._id.toString() : '')).size;
     const tingkatHunian = totalRooms > 0 ? Math.round((occupiedRoomsCount / totalRooms) * 100) : 0;
     const kamarKosong = Math.max(0, totalRooms - occupiedRoomsCount);
-    const jumlahBermasalah = probSorted.length; // From probSorted logic
-    
+    const jumlahBermasalah = probSorted.length;
+
+    const periodLabel = (!filterType || filterType === 'all') ? 'Semua Waktu' : `${months[targetMonth]} ${targetYear}`;
+    const execSummary = `Ringkasan Eksekutif: Laporan performa kosan untuk periode "${periodLabel}". Saat ini tingkat hunian berada pada angka ${tingkatHunian}%. Keuntungan bersih dari pembayaran tercatat sebesar Rp ${totalPendapatanBulanIni.toLocaleString('id-ID')}. Terdapat akumulasi total tunggakan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} dengan jumlah pelanggan bermasalah sebanyak ${jumlahBermasalah} orang.`;
+
+    const summaryTableColumns = ['Metrik Utama', 'Nilai'];
+    const summaryTableData = [
+      { 'Metrik Utama': 'Tingkat Hunian', 'Nilai': `${tingkatHunian}%` },
+      { 'Metrik Utama': 'Keuntungan Bersih', 'Nilai': `Rp ${totalPendapatanBulanIni.toLocaleString('id-ID')}` },
+      { 'Metrik Utama': 'Total Tunggakan', 'Nilai': `Rp ${totalTunggakan.toLocaleString('id-ID')}` },
+      { 'Metrik Utama': 'Penghuni Bermasalah', 'Nilai': `${jumlahBermasalah} orang` },
+      { 'Metrik Utama': 'Kamar Kosong', 'Nilai': `${kamarKosong} kamar` }
+    ];
+
+    const annexColumns = ['ID', 'Pelanggan', 'Room', 'Waktu Sewa', 'Status Real', 'Pendapatan'];
+    const dataAnnex = rentals.map(r => ({
+      'ID': r._id.toString(),
+      'Pelanggan': r.customerIds ? r.customerIds.map((c: any) => c.name).join(', ') : 'Unknown',
+      'Room': r.roomId && (r.roomId as any).roomTypeId ? `${(r.roomId as any).roomTypeId.name} (${(r.roomId as any).roomNumber})` : 'Unknown',
+      'Waktu Sewa': new Date(r.rentalStartTime).toLocaleDateString('id-ID'),
+      'Status Real': r.currentStatusText,
+      'Pendapatan': `Rp ${r.totalPaid || 0}`
+    }));
+
     if (format === 'excel') {
-      const columns = ['ID', 'Pelanggan', 'Room', 'Waktu Sewa', 'Status Real', 'Pendapatan (Total Terbayar)'];
-      const data = rentals.map(r => ({
-        'ID': r._id.toString(),
-        'Pelanggan': r.customerIds ? r.customerIds.map((c: any) => c.name).join(', ') : 'Unknown',
-        'Room': r.roomId && (r.roomId as any).roomTypeId ? `${(r.roomId as any).roomTypeId.name} (${(r.roomId as any).roomNumber})` : 'Unknown',
-        'Waktu Sewa': new Date(r.rentalStartTime).toLocaleDateString('id-ID'),
-        'Status Real': r.currentStatusText,
-        'Pendapatan (Total Terbayar)': String(r.totalPaid || 0)
-      }));
-
-      data.push({ 'ID': '', 'Pelanggan': '', 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
-      data.push({ 'ID': 'KESIMPULAN UMUM', 'Pelanggan': '', 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
-      data.push({ 'ID': 'Tingkat Hunian', 'Pelanggan': `${tingkatHunian}%`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
-      data.push({ 'ID': 'Kamar Kosong', 'Pelanggan': `${kamarKosong}`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
-      data.push({ 'ID': 'Total Tunggakan', 'Pelanggan': `Rp ${totalTunggakan}`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
-      data.push({ 'ID': 'Penghuni Bermasalah', 'Pelanggan': `${jumlahBermasalah} orang`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
-      data.push({ 'ID': 'Total Pendapatan', 'Pelanggan': `Rp ${totalRevenue}`, 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan (Total Terbayar)': '' });
-
+      const excelData = [...dataAnnex,
+        { 'ID': '', 'Pelanggan': '', 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan': '' },
+        { 'ID': 'KESIMPULAN UMUM', 'Pelanggan': '', 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan': '' },
+        ...summaryTableData.map(s => ({ 'ID': s['Metrik Utama'], 'Pelanggan': s['Nilai'], 'Room': '', 'Waktu Sewa': '', 'Status Real': '', 'Pendapatan': '' }))
+      ];
       const timestamp = new Date().toISOString().replace(/T/, '_').replace(/:/g, '').split('.')[0];
-      return await generateExcel(res, data, columns, `Dashboard_Export_${timestamp}.xlsx`);
+      return await generateExcel(res, excelData, annexColumns, `Dashboard_Export_${timestamp}.xlsx`);
     }
 
-    // PDF and Word: Generate Charts
     const width = 800;
     const height = 400;
-    // Register ChartDataLabels globally. Crash is prevented by using display callbacks
-    // that return false for zero/null values so the plugin never positions labels on invisible arcs.
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height, plugins: { modern: [ChartDataLabels as any] } });
-    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-
+    
+    const safeDisplay = (ctx: any) => { const v = ctx.dataset.data[ctx.dataIndex]; return v != null && Number(v) > 0; };
     const numberFormatter = (value: number) => {
       if (value >= 1000000) return (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'jt';
       if (value >= 1000) return (value / 1000).toFixed(1).replace(/\.0$/, '') + 'rb';
       return value;
     };
-
-    // display callback: skip label if value is falsy/zero to avoid null-element crash
-    const safeDisplay = (ctx: any) => { const v = ctx.dataset.data[ctx.dataIndex]; return v != null && Number(v) > 0; };
-
-    const getBarOptions = () => ({
-      layout: { padding: { top: 30, bottom: 10, left: 10, right: 10 } },
-      plugins: {
-        legend: { labels: { padding: 20 } },
-        datalabels: { display: safeDisplay, color: '#000', anchor: 'end' as const, align: 'top' as const, formatter: numberFormatter }
-      },
-      scales: { y: { beginAtZero: true, grace: '15%', ticks: { callback: numberFormatter } } }
-    });
-
-    const getLineOptions = () => ({
-      layout: { padding: { top: 30, bottom: 10, left: 10, right: 10 } },
-      plugins: {
-        legend: { labels: { padding: 20 } },
-        datalabels: { display: safeDisplay, color: '#000', anchor: 'end' as const, align: 'top' as const, formatter: (v: number) => v > 0 ? v : '' }
-      },
-      scales: { y: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1 } } }
-    });
-
-    const getPieOptions = (hasRealData: boolean) => ({
-      layout: { padding: 20 },
-      plugins: {
-        legend: { labels: { padding: 20 } },
-        datalabels: hasRealData
-          ? { display: safeDisplay, color: '#fff', font: { weight: 'bold' as const }, formatter: (v: number) => v > 0 ? v : '' }
-          : { display: false }
-      }
-    });
+    const getBarOptions = () => ({ layout: { padding: { top: 30, bottom: 10, left: 10, right: 10 } }, plugins: { legend: { labels: { padding: 20 } }, datalabels: { display: safeDisplay, color: '#000', anchor: 'end' as const, align: 'top' as const, formatter: numberFormatter } }, scales: { y: { beginAtZero: true, grace: '15%', ticks: { callback: numberFormatter } } } });
+    const getLineOptions = () => ({ layout: { padding: { top: 30, bottom: 10, left: 10, right: 10 } }, plugins: { legend: { labels: { padding: 20 } }, datalabels: { display: safeDisplay, color: '#000', anchor: 'end' as const, align: 'top' as const, formatter: (v: number) => v > 0 ? v : '' } }, scales: { y: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1 } } } });
+    const getPieOptions = (hasRealData: boolean) => ({ layout: { padding: 20 }, plugins: { legend: { labels: { padding: 20 } }, datalabels: hasRealData ? { display: safeDisplay, color: '#fff', font: { weight: 'bold' as const }, formatter: (v: number) => v > 0 ? v : '' } : { display: false } } });
 
     const revBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: months, datasets: [{ label: 'Pendapatan (Rp)', data: revenuePerMonth, backgroundColor: 'rgba(54, 162, 235, 0.5)' }] }, options: getBarOptions() as any });
-    const totalRev = revenuePerMonth.reduce((a, b) => a + b, 0);
-    const revDesc = `Total pendapatan selama periode ini adalah Rp ${totalRev.toLocaleString('id-ID')}.`;
+    const revDesc = `Bagan di atas menunjukkan total pendapatan per bulan selama tahun ${targetYear}.`;
 
     const popLabels = popSorted.map(p => p[0]);
     const popData = popSorted.map(p => p[1]);
     const totalPop = popData.reduce((a, b) => a + b, 0);
-    const popChartData = totalPop > 0 ? popData : [1];
-    const popChartLabels = totalPop > 0 ? popLabels : ['Kosong'];
-    const popChartColors = totalPop > 0 ? ['#ff9999','#66b3ff','#99ff99','#ffcc99','#95a5a6'] : ['#e0e0e0'];
-    const popBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: popChartLabels, datasets: [{ label: 'Penyewaan', data: popChartData, backgroundColor: popChartColors }] }, options: getPieOptions(totalPop > 0) as any });
-    const popDesc = `Total ${totalPop} penyewaan.`;
+    const popBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: totalPop > 0 ? popLabels : ['Kosong'], datasets: [{ label: 'Penyewaan', data: totalPop > 0 ? popData : [1], backgroundColor: totalPop > 0 ? ['#ff9999','#66b3ff','#99ff99','#ffcc99','#95a5a6'] : ['#e0e0e0'] }] }, options: getPieOptions(totalPop > 0) as any });
+    const popDesc = `Proporsi sewa berdasarkan tipe kamar.`;
 
     const volBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'line', data: { labels: months, datasets: [{ label: 'Volume Sewa', data: rentalsPerMonth, borderColor: 'rgba(75, 192, 192, 1)', fill: false }] }, options: getLineOptions() as any });
     const totalVol = rentalsPerMonth.reduce((a, b) => a + b, 0);
-    const volDesc = `Total volume penyewaan mencapai ${totalVol} transaksi.`;
+    const volDesc = `Tren volume penyewaan per bulan selama tahun ${targetYear}.`;
 
     const valLabels = revSortedC.map(p => p[0]);
     const valData = revSortedC.map(p => p[1]);
     const valBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: valLabels.length ? valLabels : ['Kosong'], datasets: [{ label: 'Total Pendapatan', data: valData.length ? valData : [0], backgroundColor: '#f39c12' }] }, options: getBarOptions() as any });
-    const valDesc = `Top 5 pelanggan menyumbang total pendapatan terbesar.`;
+    const valDesc = `Daftar 5 pelanggan dengan sumbangan pendapatan kumulatif tertinggi.`;
 
     const loyTotal = segment1x + segment2x + segment3plus;
-    const loyChartData = loyTotal > 0 ? [segment1x, segment2x, segment3plus] : [1];
-    const loyChartColors = loyTotal > 0 ? ['#e74c3c', '#f1c40f', '#2ecc71'] : ['#e0e0e0'];
-    const loyBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Sewa 1x', 'Sewa 2x', 'Sewa 3x+'], datasets: [{ data: loyChartData, backgroundColor: loyChartColors }] }, options: getPieOptions(loyTotal > 0) as any });
-    const loyDesc = `Statistik loyalitas pelanggan.`;
+    const loyBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Sewa 1 Bulan', 'Sewa 2 Bulan', 'Sewa 3 Bulan+'], datasets: [{ data: loyTotal > 0 ? [segment1x, segment2x, segment3plus] : [1], backgroundColor: loyTotal > 0 ? ['#e74c3c', '#f1c40f', '#2ecc71'] : ['#e0e0e0'] }] }, options: getPieOptions(loyTotal > 0) as any });
+    const loyDesc = `Segmentasi loyalitas.`;
 
-    const depTotal = depositPaid + depositUnpaid;
-    const depChartData = depTotal > 0 ? [depositPaid, depositUnpaid] : [1];
-    const depChartColors = depTotal > 0 ? ['#3498db', '#e74c3c'] : ['#e0e0e0'];
-    const depBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Lunas', 'Belum Lunas/Tunggakan'], datasets: [{ data: depChartData, backgroundColor: depChartColors }] }, options: getPieOptions(depTotal > 0) as any });
-    const depDesc = `Terdapat ${depositPaid} penyewaan lunas dan ${depositUnpaid} menunggak.`;
+    const bsTotal = bsLunas + bsTunggakan + bsOverstay + bsBatal;
+    const bsBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'pie', data: { labels: ['Lancar / Lunas', 'Tunggakan', 'Overstay', 'Batal'], datasets: [{ data: bsTotal > 0 ? [bsLunas, bsTunggakan, bsOverstay, bsBatal] : [1], backgroundColor: bsTotal > 0 ? ['#2ecc71', '#f1c40f', '#e67e22', '#e74c3c'] : ['#e0e0e0'] }] }, options: getPieOptions(bsTotal > 0) as any });
+    const bsDesc = `Status pemesanan.`;
 
     const probLabels = probSorted.map(p => p[0]);
     const probData = probSorted.map(p => p[1]);
     const probBuffer = await chartJSNodeCanvas.renderToBuffer({ type: 'bar', data: { labels: probLabels.length ? probLabels : ['Kosong'], datasets: [{ label: 'Poin Masalah (Tunggakan/Batal)', data: probData.length ? probData : [0], backgroundColor: '#c0392b' }] }, options: getBarOptions() as any });
-    const probDesc = `Pelanggan dengan riwayat tunggakan atau pembatalan.`;
+    const probDesc = `Daftar 5 pelanggan bermasalah.`;
 
     const charts = [
       { image: revBuffer, description: revDesc }, { image: popBuffer, description: popDesc },
       { image: volBuffer, description: volDesc }, { image: valBuffer, description: valDesc },
-      { image: loyBuffer, description: loyDesc }, { image: depBuffer, description: depDesc },
+      { image: loyBuffer, description: loyDesc }, { image: bsBuffer, description: bsDesc },
       { image: probBuffer, description: probDesc }
     ];
 
     const timestamp = new Date().toISOString().replace(/T/, '_').replace(/:/g, '').split('.')[0];
-    const baseFilename = `Dashboard_Report_${timestamp}`;
+    const baseFilename = `Dashboard_Report_${periodLabel}_${timestamp}`;
 
-    if (format === 'pdf') return generatePdf(res, 'Dashboard Report', [], [], `${baseFilename}.pdf`, charts);
-    if (format === 'word') return await generateDocx(res, 'Dashboard Report', [], [], `${baseFilename}.docx`, charts);
+    if (format === 'pdf') return generatePdf(res, `Laporan Performa Kosan - ${periodLabel}`, summaryTableData, summaryTableColumns, `${baseFilename}.pdf`, charts, execSummary, dataAnnex, annexColumns);
+    if (format === 'word') return await generateDocx(res, `Laporan Performa Kosan - ${periodLabel}`, summaryTableData, summaryTableColumns, `${baseFilename}.docx`, charts, execSummary, dataAnnex, annexColumns);
     
     res.status(400).json({ error: 'Invalid format' });
   } catch (err: any) {

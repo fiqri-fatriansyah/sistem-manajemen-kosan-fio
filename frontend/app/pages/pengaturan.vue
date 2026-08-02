@@ -11,18 +11,19 @@
     </div>
 
     <div v-else>
-      <div style="position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; gap: 0.5rem; flex-wrap: wrap; background: rgba(255, 255, 255, 0.95); padding: 0.625rem 1.25rem; border-radius: 1.875rem; box-shadow: 0 0.625rem 1.5625rem rgba(0,0,0,0.2); backdrop-filter: blur(0.625rem); border: 1px solid #eee; align-items: center;">
-        <span style="font-weight: bold; margin-right: 0.3125rem; color: var(--primary-color);">Navigasi Cepat:</span>
-        <a href="#denda" class="btn" style="background: #f5f5f5; color: #333; text-decoration: none; padding: 0.5rem 0.75rem; font-size: 0.85em; border-radius: 1.25rem;">Denda</a>
-        <a href="#antarmuka" class="btn" style="background: #f5f5f5; color: #333; text-decoration: none; padding: 0.5rem 0.75rem; font-size: 0.85em; border-radius: 1.25rem;">Antarmuka</a>
-        <a href="#wa" class="btn" style="background: #f5f5f5; color: #333; text-decoration: none; padding: 0.5rem 0.75rem; font-size: 0.85em; border-radius: 1.25rem;">WhatsApp</a>
-        <a href="#template" class="btn" style="background: #f5f5f5; color: #333; text-decoration: none; padding: 0.5rem 0.75rem; font-size: 0.85em; border-radius: 1.25rem;">Template Pesan</a>
-        <a href="#audit" class="btn" style="background: #f5f5f5; color: #333; text-decoration: none; padding: 0.5rem 0.75rem; font-size: 0.85em; border-radius: 1.25rem;">Log Audit</a>
-        <a href="#demo" class="btn" style="background: #f5f5f5; color: #333; text-decoration: none; padding: 0.5rem 0.75rem; font-size: 0.85em; border-radius: 1.25rem;">Demo</a>
-        <a href="#danger" class="btn" style="background: #ffcdd2; color: #c62828; text-decoration: none; padding: 0.5rem 0.75rem; font-size: 0.85em; border-radius: 1.25rem;">Danger Zone</a>
+      
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 2rem; border-bottom: 2px solid #eee; padding-bottom: 1rem;">
+        <button class="btn" :style="activeTab === 'denda' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'denda'">Denda</button>
+        <button class="btn" :style="activeTab === 'antarmuka' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'antarmuka'">Antarmuka</button>
+        <button class="btn" :style="activeTab === 'wa' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'wa'">WhatsApp</button>
+        <button class="btn" :style="activeTab === 'template' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'template'">Template Pesan</button>
+        <button class="btn" :style="activeTab === 'audit' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'audit'">Log Audit</button>
+        <button class="btn" :style="activeTab === 'demo' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'demo'">Demo</button>
+        <button class="btn" :style="activeTab === 'danger' ? 'background: #d32f2f; color: white;' : 'background: #ffcdd2; color: #c62828;'" @click="activeTab = 'danger'">Danger Zone</button>
       </div>
 
-      <div id="denda" class="material-card" style="max-width: 37.5rem; scroll-margin-top: 6.25rem;">
+
+      <div v-show="activeTab === 'denda'" class="material-card" style="max-width: 37.5rem;">
       <h2 style="margin-bottom: 1.25rem; color: var(--primary-color);">Pengaturan Denda Keterlambatan</h2>
       
       <div v-if="pending">Memuat konfigurasi...</div>
@@ -37,17 +38,17 @@
           </select>
           <small style="color: var(--text-muted); display: block; margin-top: 0.3125rem;">Aturan ini akan berlaku secara otomatis untuk semua penyewaan yang telat dikembalikan.</small>
         </div>
-
         <div style="margin-bottom: 1.25rem;" v-if="form.penaltyType !== 'None'">
           <label style="display: block; font-size: 1em; margin-bottom: 0.3125rem;">Biaya Denda (Rp)</label>
           <input type="number" min="0" v-model="form.penaltyCost" class="input" />
         </div>
         
         <div style="margin-bottom: 1.25rem;">
-          <label style="display: block; font-size: 1em; margin-bottom: 0.3125rem;">Toleransi Keterlambatan (Hari)</label>
+          <label style="display: block; font-size: 1em; margin-bottom: 0.3125rem;">Toleransi Keterlambatan & Tunggakan (Hari)</label>
           <input type="number" min="0" v-model="form.overdueGracePeriodDays" class="input" />
-          <small style="color: var(--text-muted); display: block; margin-top: 0.3125rem;">Batas toleransi (hari) sebelum room yang belum dibayar / lewat jatuh tempo otomatis ditandai sebagai 'Available' untuk disewa orang lain.</small>
+          <small style="color: var(--text-muted); display: block; margin-top: 0.3125rem;">Batas toleransi (hari) sebelum room yang belum dibayar / lewat jatuh tempo otomatis ditandai sebagai 'Available'.</small>
         </div>
+
 
         <button class="btn" @click="saveConfig" :disabled="saving">
           {{ saving ? 'Menyimpan...' : 'Simpan Pengaturan' }}
@@ -56,7 +57,7 @@
     </div>
 
     <!-- Interface & Display -->
-    <div id="antarmuka" class="material-card" style="max-width: 37.5rem; margin-top: 1.875rem; scroll-margin-top: 6.25rem;">
+    <div v-show="activeTab === 'antarmuka'" class="material-card" style="max-width: 37.5rem;">
       <h2 style="margin-bottom: 1.25rem; color: var(--primary-color);">Antarmuka & Tampilan</h2>
       
       <div v-if="pending">Memuat konfigurasi...</div>
@@ -100,7 +101,7 @@
     </div>
 
     <!-- WhatsApp Bot -->
-    <div id="wa" class="material-card" style="max-width: 37.5rem; margin-top: 1.875rem; scroll-margin-top: 6.25rem;">
+    <div v-show="activeTab === 'wa'" class="material-card" style="max-width: 37.5rem;">
       <h2 style="margin-bottom: 1.25rem; color: var(--primary-color);">Integrasi WhatsApp Bot</h2>
       
       <div v-if="pending">Memuat konfigurasi...</div>
@@ -159,7 +160,7 @@
     </div>
 
     <!-- Template Pesan WhatsApp -->
-    <div id="template" class="material-card" style="max-width: 37.5rem; margin-top: 1.875rem; scroll-margin-top: 6.25rem;">
+    <div v-show="activeTab === 'template'" class="material-card" style="max-width: 37.5rem;">
       <h2 style="margin-bottom: 1.25rem; color: var(--primary-color);">Template Pesan WhatsApp</h2>
       <p style="margin-bottom: 0.9375rem; font-size: 0.95em; line-height: 1.5; color: var(--text-muted);" v-pre>
         Variabel yang dapat digunakan:<br>
@@ -231,7 +232,7 @@
     </div>
 
     <!-- Audit Log Security -->
-    <div id="audit" class="material-card" style="margin-top: 1.875rem; scroll-margin-top: 6.25rem;">
+    <div v-show="activeTab === 'audit'" class="material-card" style="max-width: 100%;">
       <h2 style="margin-bottom: 1.25rem; color: var(--primary-color);">Log Sistem & Audit</h2>
 
       <div>
@@ -301,7 +302,7 @@
     </div>
 
     <!-- Demo Mode / Example Data -->
-    <div id="demo" class="material-card" style="max-width: 37.5rem; margin-top: 1.875rem; border-left: 0.3125rem solid var(--info); scroll-margin-top: 6.25rem;">
+    <div v-show="activeTab === 'demo'" class="material-card" style="max-width: 37.5rem;">
       <h2 style="margin-bottom: 1.25rem; color: var(--info);">Mode Contoh (Demo State)</h2>
       <p style="margin-bottom: 0.9375rem; font-size: 1em; line-height: 1.5;">
         Mengaktifkan Mode Contoh akan menyimpan data asli Anda sementara dan menggantinya dengan berbagai data dummy (contoh Inventaris, Pelanggan, Penyewaan dari berbagai tanggal). Cocok untuk mencoba fitur atau melihat grafik dasbor.
@@ -322,7 +323,7 @@
     </div>
 
     <!-- Danger Zone -->
-    <div id="danger" class="material-card" style="max-width: 37.5rem; margin-top: 1.875rem; border-left: 0.3125rem solid var(--danger); scroll-margin-top: 6.25rem;">
+    <div v-show="activeTab === 'danger'" class="material-card" style="max-width: 37.5rem;">
       <h2 style="margin-bottom: 1.25rem; color: var(--danger);">Zona Bahaya (Danger Zone)</h2>
       <p style="margin-bottom: 0.9375rem; font-size: 1em; line-height: 1.5;">
         Gunakan fitur ini hanya jika Anda ingin mereset seluruh sistem kembali ke kondisi awal (Clean Slate). Semua data Pelanggan, Inventaris, dan Penyewaan akan <strong>dihapus permanen</strong>.
@@ -387,6 +388,7 @@ const wiping = ref(false);
 const pageAuthenticated = ref(false);
 const pageAuthenticating = ref(false);
 const pagePin = ref('');
+const activeTab = ref('denda');
 
 const auditLogs = ref<any[]>([]);
 const pendingAudit = ref(false);

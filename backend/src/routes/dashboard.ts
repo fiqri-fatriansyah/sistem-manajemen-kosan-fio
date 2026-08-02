@@ -5,16 +5,45 @@ import RoomType from '../models/RoomType';
 import Customer from '../models/Customer';
 import Event from '../models/Event';
 import { calculateRentalFinancials } from './rentals';
+import Expense from '../models/Expense';
+import { generateRecurringExpenses } from '../services/expenseGenerator';
 
 const router = Router();
 
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const rentals = await RentalTransaction.find().populate({ path: 'roomId', populate: { path: 'roomTypeId' } });
+    const { filterType = 'current', month, year } = req.query;
+    let targetMonth = new Date().getMonth();
+    let targetYear = new Date().getFullYear();
+    const filterMonth = parseInt(month as string, 10);
+    const filterYear = parseInt(year as string, 10);
+    if (filterType === 'historical' && !isNaN(filterMonth) && !isNaN(filterYear)) {
+      targetMonth = filterMonth;
+      targetYear = filterYear;
+    }
+
+    await generateRecurringExpenses();
+    const allRentals = await RentalTransaction.find().populate({ path: 'roomId', populate: { path: 'roomTypeId' } });
     
-    // Top 5 rented room types
+    // Create a filtered rentals array for the selected month/year
+    const targetStart = new Date(targetYear, targetMonth, 1);
+    const targetEnd = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
+    
+    const filteredRentals = filterType === 'all' ? allRentals : allRentals.filter(r => {
+      const start = new Date(r.rentalStartTime);
+      let end = new Date();
+      if (r.status === 'Completed' && r.rentalEndTime) {
+        end = new Date(r.rentalEndTime);
+      } else if (r.status === 'Cancelled' && r.rentalEndTime) {
+        end = new Date(r.rentalEndTime);
+      } else if (r.paidUntil && new Date(r.paidUntil) > end) {
+        end = new Date(r.paidUntil);
+      }
+      return start <= targetEnd && end >= targetStart;
+    });
+
     const roomTypeCounts: Record<string, number> = {};
-    for (const r of rentals) {
+    for (const r of filteredRentals) {
       if (r.roomId) {
         const room = r.roomId as any;
         if (room.roomTypeId) {
@@ -30,18 +59,27 @@ router.get('/stats', async (req: Request, res: Response) => {
       if (rt) topRooms.push({ roomType: rt, count });
     }
 
-    // Top customers (by volume and revenue)
     const customerCounts: Record<string, number> = {};
     const customerRevenue: Record<string, number> = {};
-    for (const r of rentals) {
+    for (const r of filteredRentals) {
       const cIds = r.customerIds || [];
+      const start = new Date(r.rentalStartTime).getTime();
+      let end = new Date().getTime();
+      if (r.status === 'Completed' && r.rentalEndTime) {
+        end = new Date(r.rentalEndTime).getTime();
+      } else if (r.status === 'Cancelled' && r.rentalEndTime) {
+        end = new Date(r.rentalEndTime).getTime();
+      } else if (r.paidUntil && new Date(r.paidUntil).getTime() > end) {
+        end = new Date(r.paidUntil).getTime();
+      }
+      const months = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24 * 30)));
+
       for (const cId of cIds) {
           const idStr = cId.toString();
-          customerCounts[idStr] = (customerCounts[idStr] || 0) + 1;
+          customerCounts[idStr] = (customerCounts[idStr] || 0) + months;
           
           if (r.status === 'Completed' || r.status === 'Active') {
             const paymentsTotal = r.payments ? r.payments.reduce((a, b) => a + b.amount, 0) : 0;
-            // Revenue is distributed equally among tenants just for stats purposes, or just apply full to all
             customerRevenue[idStr] = (customerRevenue[idStr] || 0) + (paymentsTotal / cIds.length);
           }
       }
@@ -61,25 +99,20 @@ router.get('/stats', async (req: Request, res: Response) => {
       if (c) topValueCustomers.push({ label: c.name, revenue: rev });
     }
 
-    // Loyalty Segmentation
-    let segment1x = 0;
-    let segment2x = 0;
-    let segment3plus = 0;
+    let segment1x = 0; let segment2x = 0; let segment3plus = 0;
     for (const count of Object.values(customerCounts)) {
       if (count === 1) segment1x++;
       else if (count === 2) segment2x++;
       else if (count >= 3) segment3plus++;
     }
     const customerLoyalty = [
-      { label: 'Sewa 1x', count: segment1x },
-      { label: 'Sewa 2x', count: segment2x },
-      { label: 'Sewa 3x+', count: segment3plus },
+      { label: 'Sewa 1 Bulan', count: segment1x },
+      { label: 'Sewa 2 Bulan', count: segment2x },
+      { label: 'Sewa 3 Bulan+', count: segment3plus },
     ];
 
-    // Deposit Status
-    let depositPaid = 0;
-    let depositUnpaid = 0;
-    for (const r of rentals) {
+    let depositPaid = 0; let depositUnpaid = 0;
+    for (const r of filteredRentals) {
       if (['Active', 'Booked'].includes(r.status)) {
         if (r.depositPaid) depositPaid++;
         else depositUnpaid++;
@@ -90,52 +123,72 @@ router.get('/stats', async (req: Request, res: Response) => {
       { label: 'Belum Lunas/Belum DP', count: depositUnpaid }
     ];
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const upcomingEvents = await Event.find({ date: { $gte: today } }).sort({ date: 1 }).limit(5);
-
+    const upcomingEvents = await Event.find({ date: { $gte: new Date() } }).sort({ date: 1 }).limit(5);
+    
     let totalPendapatan = 0;
-    let totalPendapatanBulanIni = 0;
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    let totalPendapatanBulanIni = 0; 
     
     const revenuePerMonth = new Array(12).fill(0);
-    for (const r of rentals) {
+    // Use ALL rentals for 12-month graph, but restrict to targetYear
+    for (const r of allRentals) {
         if (r.payments) {
             for (const p of r.payments) {
                 const d = new Date(p.date);
-                if (d.getFullYear() === currentYear) {
-                  const month = d.getMonth();
-                  revenuePerMonth[month] += p.amount;
-                  if (month === currentMonth) {
-                      totalPendapatanBulanIni += p.amount;
-                  }
+                const pMonth = d.getMonth();
+                const pYear = d.getFullYear();
+                
+                if (pYear === targetYear) {
+                  revenuePerMonth[pMonth] += p.amount;
                 }
                 totalPendapatan += p.amount;
+                
+                if (filterType === 'all') {
+                  totalPendapatanBulanIni += p.amount;
+                } else if (pMonth === targetMonth && pYear === targetYear) {
+                  totalPendapatanBulanIni += p.amount;
+                }
             }
         }
+    }
+
+    const expenses = await Expense.find();
+    for (const e of expenses) {
+      const d = new Date(e.date);
+      const eMonth = d.getMonth();
+      const eYear = d.getFullYear();
+      
+      if (eYear === targetYear) {
+        revenuePerMonth[eMonth] -= e.amount;
+      }
+      totalPendapatan -= e.amount;
+      if (filterType === 'all') {
+        totalPendapatanBulanIni -= e.amount;
+      } else if (eMonth === targetMonth && eYear === targetYear) {
+        totalPendapatanBulanIni -= e.amount;
+      }
     }
 
     const kebayaPopularity = topRooms.map(t => ({ label: `${t.roomType.name}`, count: t.count }));
 
     const rentalsPerMonth = new Array(12).fill(0);
-    for (const r of rentals) {
-      const month = new Date(r.rentalStartTime).getMonth();
-      rentalsPerMonth[month]++;
+    for (const r of allRentals) {
+      const d = new Date(r.rentalStartTime);
+      if (d.getFullYear() === targetYear) {
+        rentalsPerMonth[d.getMonth()]++;
+      }
     }
 
-    const computedRentals = rentals.map(calculateRentalFinancials);
+    const computedRentals = filteredRentals.map(calculateRentalFinancials);
     let totalTunggakan = 0;
     const customerIssues: Record<string, number> = {};
     
     for (const r of computedRentals) {
       totalTunggakan += r.tunggakanAmount || 0;
-      
       for (const cId of r.customerIds || []) {
           const idStr = cId.toString();
           if (!customerIssues[idStr]) customerIssues[idStr] = 0;
           if (r.status === 'Cancelled') customerIssues[idStr] += 1;
-          if (r.tunggakanAmount && r.tunggakanAmount > 0) customerIssues[idStr] += (r.tunggakanAmount / 100000); // 1 point per 100k
+          if (r.tunggakanAmount && r.tunggakanAmount > 0) customerIssues[idStr] += (r.tunggakanAmount / 100000); 
       }
     }
     const sortedIssues = Object.entries(customerIssues).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
@@ -144,45 +197,25 @@ router.get('/stats', async (req: Request, res: Response) => {
       const c = await Customer.findById(id);
       if (c) problematicCustomers.push({ label: c.name, count: Math.floor(score) });
     }
-    
     const jumlahPenghuniBermasalah = sortedIssues.length;
 
-    // Room Occupancy
     const rooms = await Room.find({ status: { $ne: 'Maintenance' }});
     const totalRooms = rooms.length;
-    // Active rentals occupying rooms today
-    const now = new Date();
+    // Occupancy based on targetEnd
+    const occupancyDate = filterType === 'all' ? new Date() : targetEnd;
     const activeRentals = computedRentals.filter(r => 
       ['Active', 'Booked'].includes(r.uiStatus) && 
-      (new Date(r.rentalStartTime) <= now) &&
-      (!r.expectedReturnDate || new Date(r.expectedReturnDate) >= now)
+      (new Date(r.rentalStartTime) <= occupancyDate) &&
+      (!r.expectedReturnDate || new Date(r.expectedReturnDate) >= occupancyDate)
     );
     const occupiedRoomsCount = new Set(activeRentals.map(r => r.roomId ? (r.roomId as any)._id.toString() : '')).size;
-    
     const tingkatHunian = totalRooms > 0 ? Math.round((occupiedRoomsCount / totalRooms) * 100) : 0;
     const kamarKosong = Math.max(0, totalRooms - occupiedRoomsCount);
 
     res.json({
-      metrics: {
-        totalPendapatan,
-        totalPendapatanBulanIni,
-        tingkatHunian,
-        kamarKosong,
-        totalTunggakan,
-        jumlahPenghuniBermasalah
-      },
-      topRooms,
-      topCustomers,
-      upcomingEvents,
-      charts: {
-        revenuePerMonth,
-        kebayaPopularity,
-        rentalsPerMonth,
-        topValueCustomers,
-        customerLoyalty,
-        depositStatus,
-        problematicCustomers
-      }
+      metrics: { totalPendapatan, totalPendapatanBulanIni, tingkatHunian, kamarKosong, totalTunggakan, jumlahPenghuniBermasalah },
+      topRooms, topCustomers, upcomingEvents,
+      charts: { revenuePerMonth, kebayaPopularity, rentalsPerMonth, topValueCustomers, customerLoyalty, depositStatus, problematicCustomers }
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

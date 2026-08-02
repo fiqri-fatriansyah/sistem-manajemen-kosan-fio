@@ -43,7 +43,7 @@
               </td>
               <!-- Render timeline cells -->
               <td v-for="day in daysInMonth" :key="day" style="padding: 0; border-right: 1px solid var(--surface-border); position: relative; height: 3.75rem; background: #fafafa;">
-                <div v-for="(rental, i) in getRentalsForDay(room._id, day)" :key="rental._id"
+                <div v-for="(rental, i) in getRentalsForDay(room._id, day)" :key="rental.segmentId"
                      :style="getRentalStyle(rental, day)"
                      class="timeline-bar"
                      :title="getRentalTitle(rental)">
@@ -115,6 +115,7 @@ const loading = ref(true);
 const rooms = ref<any[]>([]);
 const roomTypes = ref<any[]>([]);
 const rentals = ref<any[]>([]);
+const appConfig = ref<any>({});
 
 const searchQuery = ref('');
 const filterRoomTypeId = ref('');
@@ -197,13 +198,15 @@ const nextMonth = () => {
 const fetchData = async () => {
   loading.value = true;
   try {
-    const [roomsRes, typesRes, rentalsRes] = await Promise.all([
+    const [roomsRes, typesRes, rentalsRes, configRes] = await Promise.all([
       fetch('http://localhost:3001/api/rooms'),
       fetch('http://localhost:3001/api/rooms/types'),
-      fetch('http://localhost:3001/api/rentals')
+      fetch('http://localhost:3001/api/rentals'),
+      fetch('http://localhost:3001/api/config')
     ]);
     rooms.value = await roomsRes.json();
     roomTypes.value = await typesRes.json();
+    appConfig.value = await configRes.json();
     const allRentals = await rentalsRes.json();
     rentals.value = allRentals.filter((r: any) => r.status !== 'Cancelled');
   } catch (err) {
@@ -221,60 +224,99 @@ const getRentalsForDay = (roomId: string, day: number) => {
   const cellDate = new Date(currentYear.value, currentMonth.value, day);
   cellDate.setHours(12, 0, 0, 0);
 
-  return rentals.value.filter(r => {
+  const segmentsForDay = [];
+
+  for (const r of rentals.value) {
     const rId = r.roomId?._id || r.roomId;
-    if (rId !== roomId) return false;
+    if (rId !== roomId) continue;
 
     const start = new Date(r.rentalStartTime);
     start.setHours(0, 0, 0, 0);
     
-    let end: Date;
+    let segments = [];
+
     if (r.rentalType === 'Long-Stay') {
-      end = new Date('2099-12-31T23:59:59Z'); 
+      if (r.tunggakanAmount && r.tunggakanAmount > 0 && r.paidUntil) {
+        const paidUntil = new Date(r.paidUntil);
+        paidUntil.setHours(23, 59, 59, 999);
+        
+        // Segment 1: Lunas until paidUntil
+        segments.push({
+          ...r,
+          segmentStart: start,
+          segmentEnd: paidUntil,
+          segmentStatus: 'Lunas',
+          segmentId: r._id + '-lunas'
+        });
+
+        // Segment 2: Tunggakan for 1 month
+        const tunggakanStart = new Date(paidUntil.getTime() + 1000); 
+        tunggakanStart.setHours(0, 0, 0, 0);
+        
+        const tunggakanEnd = new Date(tunggakanStart);
+        const toleranceDays = appConfig.value?.overdueGracePeriodDays || 30;
+        tunggakanEnd.setDate(tunggakanEnd.getDate() + toleranceDays);
+        tunggakanEnd.setHours(23, 59, 59, 999);
+        
+        segments.push({
+          ...r,
+          segmentStart: tunggakanStart,
+          segmentEnd: tunggakanEnd,
+          segmentStatus: 'Tunggakan Bulanan',
+          segmentId: r._id + '-tunggakan'
+        });
+      } else {
+        segments.push({
+          ...r,
+          segmentStart: start,
+          segmentEnd: new Date('2099-12-31T23:59:59Z'),
+          segmentStatus: 'Lunas',
+          segmentId: r._id + '-lunas'
+        });
+      }
     } else {
+      let end = new Date('2099-12-31T23:59:59Z');
       if (r.expectedReturnDate) {
         end = new Date(r.expectedReturnDate);
         end.setHours(23, 59, 59, 999);
-      } else {
-        end = new Date('2099-12-31T23:59:59Z');
+      }
+      if (r.status === 'Completed' && r.rentalEndTime) {
+        end = new Date(r.rentalEndTime);
+        end.setHours(23, 59, 59, 999);
+      }
+      segments.push({
+        ...r,
+        segmentStart: start,
+        segmentEnd: end,
+        segmentStatus: r.currentStatusText || r.status,
+        segmentId: r._id + '-regular'
+      });
+    }
+
+    for (const seg of segments) {
+      if (cellDate >= seg.segmentStart && cellDate <= seg.segmentEnd) {
+        const isStartDay = cellDate.getFullYear() === seg.segmentStart.getFullYear() && 
+                           cellDate.getMonth() === seg.segmentStart.getMonth() && 
+                           cellDate.getDate() === seg.segmentStart.getDate();
+        const isFirstDayOfMonth = day === 1 && seg.segmentStart < cellDate;
+        
+        if (isStartDay || isFirstDayOfMonth) {
+           segmentsForDay.push(seg);
+        }
       }
     }
-    
-    if (r.status === 'Completed' && r.rentalEndTime) {
-      end = new Date(r.rentalEndTime);
-      end.setHours(23, 59, 59, 999);
-    }
-    
-    if (cellDate >= start && cellDate <= end) {
-      const isStartDay = cellDate.getFullYear() === start.getFullYear() && cellDate.getMonth() === start.getMonth() && cellDate.getDate() === start.getDate();
-      const isFirstDayOfMonth = day === 1 && start < cellDate;
-      
-      return isStartDay || isFirstDayOfMonth;
-    }
-    
-    return false;
-  });
+  }
+  return segmentsForDay;
 };
 
-const getRentalStyle = (rental: any, startDay: number) => {
+const getRentalStyle = (seg: any, startDay: number) => {
   const cellDate = new Date(currentYear.value, currentMonth.value, startDay);
   cellDate.setHours(12, 0, 0, 0);
 
-  const start = new Date(rental.rentalStartTime);
+  const start = new Date(seg.segmentStart);
   start.setHours(0, 0, 0, 0);
   
-  let end: Date;
-  if (rental.rentalType === 'Long-Stay') {
-    end = new Date(currentYear.value, currentMonth.value, daysInMonth.value, 23, 59, 59);
-  } else {
-    end = new Date(rental.expectedReturnDate || '2099-12-31T23:59:59Z');
-    end.setHours(23, 59, 59, 999);
-  }
-  
-  if (rental.status === 'Completed' && rental.rentalEndTime) {
-    end = new Date(rental.rentalEndTime);
-    end.setHours(23, 59, 59, 999);
-  }
+  let end = new Date(seg.segmentEnd);
 
   const monthEnd = new Date(currentYear.value, currentMonth.value, daysInMonth.value, 23, 59, 59);
   let effectiveEnd = end > monthEnd ? monthEnd : end;
@@ -290,18 +332,22 @@ const getRentalStyle = (rental: any, startDay: number) => {
 
   let bgColor = 'rgba(39, 174, 96, 0.8)';
   
-  if (rental.rentalType === 'Long-Stay') {
-    bgColor = 'rgba(142, 68, 173, 0.8)'; 
-  }
-  
-  if (rental.status === 'Completed') {
-    bgColor = 'rgba(149, 165, 166, 0.8)';
-  } else if (rental.currentStatusText?.includes('Belum') || rental.currentStatusText?.includes('DP Parsial') || rental.currentStatusText === 'Tunggakan DP') {
-    bgColor = 'rgba(243, 156, 18, 0.8)';
-  } else if (rental.currentStatusText === 'Overstay') {
-    bgColor = 'rgba(192, 57, 43, 0.8)';
-  } else if (rental.currentStatusText === 'Tunggakan' || rental.tunggakanAmount > 0) {
-    bgColor = 'rgba(231, 76, 60, 0.8)';
+  if (seg.rentalType === 'Long-Stay') {
+    if (seg.segmentStatus === 'Tunggakan Bulanan') {
+      bgColor = 'rgba(231, 76, 60, 0.8)';
+    } else {
+      bgColor = 'rgba(142, 68, 173, 0.8)'; 
+    }
+  } else {
+    if (seg.status === 'Completed') {
+      bgColor = 'rgba(149, 165, 166, 0.8)';
+    } else if (seg.segmentStatus?.includes('Belum') || seg.segmentStatus?.includes('DP Parsial') || seg.segmentStatus === 'Tunggakan DP') {
+      bgColor = 'rgba(243, 156, 18, 0.8)';
+    } else if (seg.segmentStatus === 'Overstay') {
+      bgColor = 'rgba(192, 57, 43, 0.8)';
+    } else if (seg.segmentStatus === 'Tunggakan' || seg.tunggakanAmount > 0) {
+      bgColor = 'rgba(231, 76, 60, 0.8)';
+    }
   }
 
   return {
@@ -321,8 +367,8 @@ const getRentalStyle = (rental: any, startDay: number) => {
   };
 };
 
-const getRentalTitle = (rental: any) => {
-  return `Penghuni: ${rental.customerIds[0]?.name}\nStatus: ${rental.currentStatusText}\nTipe: ${rental.rentalType}`;
+const getRentalTitle = (seg: any) => {
+  return `Penghuni: ${seg.customerIds[0]?.name}\nStatus: ${seg.segmentStatus || seg.currentStatusText}\nTipe: ${seg.rentalType}`;
 };
 </script>
 

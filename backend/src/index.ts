@@ -22,6 +22,8 @@ import reportsRoutes from './routes/reports';
 import receiptsRoutes from './routes/receipts';
 import configRoutes from './routes/config';
 import auditRoutes from './routes/audit';
+
+import expensesRoutes from './routes/expenses';
 import { startCronJobs } from './cron';
 
 // Static files for uploads
@@ -38,6 +40,8 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/receipts', receiptsRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/audit', auditRoutes);
+
+app.use('/api/expenses', expensesRoutes);
 
 startCronJobs();
 

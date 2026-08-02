@@ -6,6 +6,7 @@ import Customer from './models/Customer';
 import Event from './models/Event';
 import Config from './models/Config';
 import { sendWhatsAppMessage, getWhatsAppStatus } from './whatsapp';
+import { processAutomatedExpenses } from './services/expenseGenerator';
 
 // Setup Ethereal Testing Email
 let transporter: nodemailer.Transporter;
@@ -85,6 +86,12 @@ export const startCronJobs = () => {
     } catch (err) {
       console.error('[Cron] Error running daily check:', err);
     }
+  });
+
+  // Run every day at 00:05 for Automated Expenses
+  cron.schedule('5 0 * * *', async () => {
+    console.log('[Cron] Running Automated Expenses...');
+    await processAutomatedExpenses();
   });
 
   // Run every day at Midnight (00:01) for No-Show Auto-Cancellation

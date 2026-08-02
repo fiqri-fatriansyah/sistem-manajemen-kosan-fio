@@ -1,13 +1,15 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+const backendUrl = process.env.NUXT_BACKEND_URL || 'http://localhost:3011';
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: false },
   css: ['~/assets/css/main.css'],
   modules: ['@vite-pwa/nuxt'],
   routeRules: {
-    '/api/**': { proxy: '/api/**' },
-    '/img/**': { proxy: '/img/**' },
-    '/receipts/**': { proxy: '/receipts/**' }
+    '/api/**': { proxy: `${backendUrl}/api/**` },
+    '/img/**': { proxy: `${backendUrl}/img/**` },
+    '/receipts/**': { proxy: `${backendUrl}/receipts/**` }
   },
   pwa: {
     registerType: 'autoUpdate',

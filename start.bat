@@ -34,6 +34,9 @@ if %errorlevel% neq 0 (
 if not exist "backend\.env" (
     powershell -Command "[IO.File]::WriteAllBytes('backend\.env', [Convert]::FromBase64String('UE9SVD0zMDExDQpNT05HT0RCX1VSST1tb25nb2RiOi8vbG9jYWxob3N0OjI3MDE3L2tvc2FuLWZpbw0KTUFTVEVSX1BJTj04ODg4ODgNClJFU0VUX1BJTj05OTk5OTk='))"
 )
+if not exist "frontend\.env" (
+    powershell -Command "[IO.File]::WriteAllBytes('frontend\.env', [Convert]::FromBase64String('TlVYVF9CQUNLRU5EX1VSTD1odHRwOi8vbG9jYWxob3N0OjMwMTENClBPUlQ9MzAxMA=='))"
+)
 
 :: 4. Install Dependencies if Missing
 if not exist "backend\node_modules\" (

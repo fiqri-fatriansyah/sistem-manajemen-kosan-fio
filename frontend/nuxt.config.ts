@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   css: ['~/assets/css/main.css'],
   modules: ['@vite-pwa/nuxt'],
+  routeRules: {
+    '/api/**': { proxy: '/api/**' },
+    '/img/**': { proxy: '/img/**' },
+    '/receipts/**': { proxy: '/receipts/**' }
+  },
   pwa: {
     registerType: 'autoUpdate',
     manifest: {

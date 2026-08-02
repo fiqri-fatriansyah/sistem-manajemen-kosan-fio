@@ -6,8 +6,8 @@
       <div style="display: flex; gap: 0.9375rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
         <div style="display: flex; gap: 0.625rem; align-items: center; flex: 1; min-width: 18.75rem;">
           <input type="text" v-model="searchQuery" class="input" placeholder="Cari Tipe, No. Room, Fasilitas, atau Penyewa..." style="flex: 1; max-width: 25rem; margin-bottom: 0;" />
-          <button class="btn" style="background: #34495e; padding: 0.3125rem 0.625rem; font-size: 0.9em;" @click="expandAll" title="Buka Semua">Buka Semua</button>
-          <button class="btn" style="background: #7f8c8d; padding: 0.3125rem 0.625rem; font-size: 0.9em;" @click="collapseAll" title="Tutup Semua">Tutup Semua</button>
+          <button class="btn" style="background: #34495e; padding: 0.3125rem 0.625rem; font-size: 1.05em;" @click="expandAll" title="Buka Semua">Buka Semua</button>
+          <button class="btn" style="background: #7f8c8d; padding: 0.3125rem 0.625rem; font-size: 1.05em;" @click="collapseAll" title="Tutup Semua">Tutup Semua</button>
         </div>
         <div style="display: flex; gap: 0.625rem;">
           <button class="btn" @click="openRoomTypeForm(null)" style="background: var(--primary-color);">+ Tambah Tipe Baru</button>
@@ -113,13 +113,13 @@
         <!-- RoomType Header (Collapsible) -->
         <div style="background: #f8f9fa; padding: 0.9375rem 1.25rem; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between; cursor: pointer;" @click="toggleRT(rt._id)">
           <div style="display: flex; gap: 1.25rem; align-items: center;">
-            <img v-if="rt.imageUrl" :src="'http://localhost:3011' + rt.imageUrl" style="width: 5rem; height: 5rem; object-fit: cover; border-radius: 0.5rem;" />
-            <div v-else style="width: 5rem; height: 5rem; background: #eee; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 0.8em; color: #999;">No Img</div>
+            <img v-if="rt.imageUrl" :src="'' + rt.imageUrl" style="width: 5rem; height: 5rem; object-fit: cover; border-radius: 0.5rem;" />
+            <div v-else style="width: 5rem; height: 5rem; background: #eee; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.05em; color: #999;">No Img</div>
             
             <div>
               <h2 style="margin: 0; color: var(--primary-color);">{{ rt.name }}</h2>
-              <div style="color: var(--text-muted); font-size: 0.9em; margin-top: 0.3125rem;">
-                <span v-for="feat in rt.features" :key="feat" style="background: #e0e0e0; padding: 0.125rem 0.5rem; border-radius: 0.75rem; margin-right: 0.3125rem; font-size: 0.85em;">{{ feat }}</span>
+              <div style="color: var(--text-muted); font-size: 1.05em; margin-top: 0.3125rem;">
+                <span v-for="feat in rt.features" :key="feat" style="background: #e0e0e0; padding: 0.125rem 0.5rem; border-radius: 0.75rem; margin-right: 0.3125rem; font-size: 1em;">{{ feat }}</span>
               </div>
             </div>
           </div>
@@ -127,8 +127,8 @@
           <div style="display: flex; align-items: center; gap: 1.25rem;">
             <div style="text-align: right;">
               <div style="font-weight: bold; font-size: 1.1em;">Rp {{ formatRupiah(rt.price) }} /Bulan</div>
-              <div style="font-weight: bold; font-size: 0.9em; color: #27ae60;">Rp {{ formatRupiah(rt.priceDaily) }} /Hari</div>
-              <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 0.3125rem;">
+              <div style="font-weight: bold; font-size: 1.05em; color: #27ae60;">Rp {{ formatRupiah(rt.priceDaily) }} /Hari</div>
+              <div style="font-size: 1em; color: var(--text-muted); margin-top: 0.3125rem;">
                 Tersedia: <strong>{{ getAvailableCount(rt._id) }}</strong> / Total: {{ getRoomsByType(rt._id).length }}
               </div>
             </div>
@@ -159,12 +159,12 @@
             <tbody>
               <tr v-for="room in getFilteredRoomsByType(rt._id)" :key="room._id">
                 <td>
-                  <img v-if="room.imageUrl || rt.imageUrl" :src="'http://localhost:3011' + (room.imageUrl || rt.imageUrl)" style="width: 3.75rem; height: 3.75rem; object-fit: cover; border-radius: 0.25rem;" />
+                  <img v-if="room.imageUrl || rt.imageUrl" :src="'' + (room.imageUrl || rt.imageUrl)" style="width: 3.75rem; height: 3.75rem; object-fit: cover; border-radius: 0.25rem;" />
                   <div v-else style="width: 3.75rem; height: 3.75rem; background: #f5f5f5; border-radius: 0.25rem;"></div>
                 </td>
                 <td style="font-weight: bold; font-size: 1.1em;">
                   {{ room.roomNumber }}
-                  <div style="font-size: 0.75em; font-weight: normal; margin-top: 0.3125rem; padding: 0.25rem; border-radius: 0.25rem;" :style="room.priceMonthly || room.priceDaily ? 'background: #fff3e0; border: 1px solid #ffe0b2; color: #d35400;' : 'background: #f8f9fa; border: 1px solid #eee; color: #666;'">
+                  <div style="font-size: 1.05em; font-weight: normal; margin-top: 0.3125rem; padding: 0.25rem; border-radius: 0.25rem;" :style="room.priceMonthly || room.priceDaily ? 'background: #fff3e0; border: 1px solid #ffe0b2; color: #d35400;' : 'background: #f8f9fa; border: 1px solid #eee; color: #666;'">
                     <div v-if="room.priceMonthly || room.priceDaily" style="margin-bottom: 0.125rem;"><strong>(Harga Khusus)</strong></div>
                     <div>Bulanan: Rp {{ formatRupiah(room.priceMonthly || rt.price) }}</div>
                     <div>Harian: Rp {{ formatRupiah(room.priceDaily || rt.priceDaily || Math.ceil(rt.price/30)) }}</div>
@@ -172,24 +172,24 @@
                 </td>
                 <td>
                   <div style="display: flex; flex-wrap: wrap; gap: 0.3125rem;">
-                    <span v-for="feat in room.features" :key="feat" style="background: #e8f5e9; color: #2e7d32; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8em; border: 1px solid #c8e6c9;">{{ feat }}</span>
+                    <span v-for="feat in room.features" :key="feat" style="background: #e8f5e9; color: #2e7d32; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 1.05em; border: 1px solid #c8e6c9;">{{ feat }}</span>
                   </div>
                 </td>
                 <td>
                   <span class="status-badge" :class="'status-' + room.status.toLowerCase()">{{ room.status }}</span>
                   
                   <div style="margin-top: 0.625rem; display: flex; gap: 0.3125rem; flex-wrap: wrap; align-items: center;" v-if="room.status !== 'Occupied'">
-                    <span style="font-size: 0.85em; color: #555; font-weight: bold; margin-right: 0.25rem;">Ubah Ke:</span>
-                    <button v-if="room.status !== 'Available'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.85em; background: var(--success); box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Available')">Tersedia</button>
-                    <button v-if="room.status !== 'Cleaning'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.85em; background: #3498db; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Cleaning')">Bersihkan</button>
-                    <button v-if="room.status !== 'Maintenance'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.85em; background: #e67e22; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Maintenance')">Perbaikan</button>
+                    <span style="font-size: 1em; color: #555; font-weight: bold; margin-right: 0.25rem;">Ubah Ke:</span>
+                    <button v-if="room.status !== 'Available'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 1em; background: var(--success); box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Available')">Tersedia</button>
+                    <button v-if="room.status !== 'Cleaning'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 1em; background: #3498db; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Cleaning')">Bersihkan</button>
+                    <button v-if="room.status !== 'Maintenance'" class="btn" style="padding: 0.25rem 0.625rem; font-size: 1em; background: #e67e22; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.15);" @click="changeRoomStatus(room._id, 'Maintenance')">Perbaikan</button>
                   </div>
                 </td>
                 <td>
                   <div v-if="getRentalsForRoom(room._id).length">
-                    <div v-for="r in getRentalsForRoom(room._id)" :key="r._id" style="margin-bottom: 0.3125rem; font-size: 0.9em; background: #f8f9fa; padding: 0.3125rem; border-radius: 0.25rem; border: 1px solid #eee;">
+                    <div v-for="r in getRentalsForRoom(room._id)" :key="r._id" style="margin-bottom: 0.3125rem; font-size: 1.05em; background: #f8f9fa; padding: 0.3125rem; border-radius: 0.25rem; border: 1px solid #eee;">
                       <strong>{{ r.customerIds.map((c: any) => c.name).join(', ') }}</strong>
-                      <div style="color: #666; font-size: 0.85em;">
+                      <div style="color: #666; font-size: 1em;">
                         {{ r.rentalType }}<br/>
                         <span v-if="r.rentalType === 'Long-Stay' && r.paidUntil">
                           Paid Until: {{ new Date(r.paidUntil).toLocaleDateString('id-ID') }}
@@ -197,14 +197,29 @@
                         <span v-if="r.rentalType === 'One-Time' && r.expectedReturnDate">
                           Jatuh Tempo: {{ new Date(r.expectedReturnDate).toLocaleDateString('id-ID') }}
                         </span>
+                        <div style="margin-top: 0.25rem;" v-if="r.currentStatusText">
+                           <span :style="{
+                             padding: '0.125rem 0.3125rem',
+                             borderRadius: '0.25rem',
+                             fontSize: '0.8em',
+                             fontWeight: 'bold',
+                             color: 'white',
+                             backgroundColor: r.currentStatusText.includes('Tunggakan') || r.currentStatusText.includes('Overstay') ? '#e74c3c' : (r.currentStatusText.includes('Booked') ? '#f39c12' : '#2ecc71')
+                           }">
+                             {{ r.currentStatusText }}
+                           </span>
+                           <span v-if="r.tunggakanAmount > 0" style="margin-left: 0.25rem; color: #e74c3c; font-weight: bold; font-size: 1.05em;">
+                             (Rp {{ r.tunggakanAmount.toLocaleString('id-ID') }})
+                           </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                   <span v-else style="color: #999;">-</span>
                 </td>
                 <td>
-                  <button class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.9em; background: #34495e; margin-bottom: 0.3125rem; width: 100%;" @click="openRoomForm(room)">Edit</button>
-                  <button class="btn" style="padding: 0.25rem 0.625rem; font-size: 0.9em; background: var(--danger); width: 100%;" @click="deleteRoom(room._id)">Hapus</button>
+                  <button class="btn" style="padding: 0.25rem 0.625rem; font-size: 1.05em; background: #34495e; margin-bottom: 0.3125rem; width: 100%;" @click="openRoomForm(room)">Edit</button>
+                  <button class="btn" style="padding: 0.25rem 0.625rem; font-size: 1.05em; background: var(--danger); width: 100%;" @click="deleteRoom(room._id)">Hapus</button>
                 </td>
               </tr>
               <tr v-if="getFilteredRoomsByType(rt._id).length === 0">
@@ -218,7 +233,7 @@
       
       <!-- Pagination Controls -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem;">
-        <div style="font-size: 0.9em;">
+        <div style="font-size: 1.05em;">
           Tampilkan: 
           <select v-model="itemsPerPage" class="input" style="width: auto; padding: 0.125rem 0.3125rem; margin: 0; display: inline-block;" @change="currentPage = 1">
             <option :value="5">5</option>
@@ -227,7 +242,7 @@
             <option :value="50">50</option>
           </select>
         </div>
-        <div style="display: flex; gap: 0.625rem; align-items: center; font-size: 0.9em;">
+        <div style="display: flex; gap: 0.625rem; align-items: center; font-size: 1.05em;">
           <button class="btn" :disabled="currentPage === 1" @click="currentPage--" style="background: #e0e0e0; color: #333; padding: 0.125rem 0.625rem;">&lt; Prev</button>
           <span style="font-weight: bold;">Halaman {{ currentPage }} dari {{ totalPages || 1 }}</span>
           <button class="btn" :disabled="currentPage >= totalPages || totalPages === 0" @click="currentPage++" style="background: #e0e0e0; color: #333; padding: 0.125rem 0.625rem;">Next &gt;</button>
@@ -313,7 +328,7 @@ const addNewTag = async () => {
   }
   
   try {
-    const res = await fetch('http://localhost:3011/api/rooms/features', {
+    const res = await fetch('/api/rooms/features', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: tagName })
@@ -354,7 +369,7 @@ const openRoomTypeForm = (rt: any) => {
     isEditingRT.value = true;
     rtEditId.value = rt._id;
     rtForm.value = { name: rt.name, price: rt.price, priceDaily: rt.priceDaily, features: [...rt.features] };
-    rtImagePreview.value = rt.imageUrl ? `http://localhost:3011${rt.imageUrl}` : null;
+    rtImagePreview.value = rt.imageUrl ? `${rt.imageUrl}` : null;
   } else {
     isEditingRT.value = false;
     rtEditId.value = null;
@@ -383,7 +398,7 @@ const saveRoomType = async () => {
   formData.append('features', JSON.stringify(rtForm.value.features));
   if (rtImageFile.value) formData.append('image', rtImageFile.value);
 
-  const url = isEditingRT.value ? `http://localhost:3011/api/rooms/types/${rtEditId.value}` : 'http://localhost:3011/api/rooms/types';
+  const url = isEditingRT.value ? `/api/rooms/types/${rtEditId.value}` : '/api/rooms/types';
   const method = isEditingRT.value ? 'PUT' : 'POST';
 
   try {
@@ -392,7 +407,7 @@ const saveRoomType = async () => {
     showRoomTypeForm.value = false;
     await fetchData();
   } catch(err: any) {
-    alert('Error: ' + err.message);
+    alert('Terjadi kesalahan sistem atau jaringan terputus. Silakan coba lagi.');
   }
 };
 
@@ -419,7 +434,7 @@ const openRoomForm = (r: any, prefilledTypeId: string = '') => {
       priceMonthly: r.priceMonthly || '',
       priceDaily: r.priceDaily || ''
     };
-    rImagePreview.value = r.imageUrl ? `http://localhost:3011${r.imageUrl}` : null;
+    rImagePreview.value = r.imageUrl ? `${r.imageUrl}` : null;
   } else {
     isEditingRoom.value = false;
     rEditId.value = null;
@@ -455,7 +470,7 @@ const saveRoom = async () => {
   formData.append('features', JSON.stringify(rForm.value.features));
   if (rImageFile.value) formData.append('image', rImageFile.value);
 
-  const url = isEditingRoom.value ? `http://localhost:3011/api/rooms/${rEditId.value}` : 'http://localhost:3011/api/rooms';
+  const url = isEditingRoom.value ? `/api/rooms/${rEditId.value}` : '/api/rooms';
   const method = isEditingRoom.value ? 'PUT' : 'POST';
 
   try {
@@ -464,13 +479,13 @@ const saveRoom = async () => {
     showRoomForm.value = false;
     await fetchData();
   } catch(err: any) {
-    alert('Error: ' + err.message);
+    alert('Terjadi kesalahan sistem atau jaringan terputus. Silakan coba lagi.');
   }
 };
 
 const deleteRoom = async (id: string) => {
   if (confirm('Yakin ingin menghapus room ini?')) {
-    await fetch(`http://localhost:3011/api/rooms/${id}`, { method: 'DELETE' });
+    await fetch(`/api/rooms/${id}`, { method: 'DELETE' });
     await fetchData();
   }
 };
@@ -478,7 +493,7 @@ const deleteRoom = async (id: string) => {
 const changeRoomStatus = async (id: string, newStatus: string) => {
   const formData = new FormData();
   formData.append('status', newStatus);
-  await fetch(`http://localhost:3011/api/rooms/${id}`, { method: 'PUT', body: formData });
+  await fetch(`/api/rooms/${id}`, { method: 'PUT', body: formData });
   await fetchData();
 };
 
@@ -578,7 +593,7 @@ const getFilteredRoomsByType = (rtId: string) => {
 <style scoped>
 .form-label {
   display: block;
-  font-size: 0.95em;
+  font-size: 1.05em;
   margin-bottom: 0.3125rem;
   font-weight: 600;
   color: #444;
@@ -586,7 +601,7 @@ const getFilteredRoomsByType = (rtId: string) => {
 .status-badge {
   padding: 0.25rem 0.625rem;
   border-radius: 1.25rem;
-  font-size: 0.85em;
+  font-size: 1em;
   font-weight: bold;
 }
 .status-available { background: #e8f5e9; color: #2e7d32; }

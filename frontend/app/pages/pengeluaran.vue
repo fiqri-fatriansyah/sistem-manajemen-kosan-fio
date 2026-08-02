@@ -186,7 +186,7 @@ onMounted(() => {
 
 const fetchConfigs = async () => {
   try {
-    const res = await fetch('http://localhost:3011/api/expenses/config');
+    const res = await fetch('/api/expenses/config');
     configs.value = await res.json();
   } catch (err) {
     console.error(err);
@@ -196,7 +196,7 @@ const fetchConfigs = async () => {
 const fetchHistory = async () => {
   pendingHistory.value = true;
   try {
-    const res = await fetch(`http://localhost:3011/api/expenses?month=${filterMonth.value}`);
+    const res = await fetch(`/api/expenses?month=${filterMonth.value}`);
     history.value = await res.json();
   } catch (err) {
     console.error(err);
@@ -220,7 +220,7 @@ const saveConfig = async () => {
   }
   saving.value = true;
   try {
-    let url = 'http://localhost:3011/api/expenses/config';
+    let url = '/api/expenses/config';
     let method = 'POST';
     if (form.value._id) {
       url += `/${form.value._id}`;
@@ -243,7 +243,7 @@ const saveConfig = async () => {
 const deleteConfig = async (id: string) => {
   if (!confirm('Yakin ingin menghapus konfigurasi ini? Ini tidak akan menghapus riwayat pengeluarannya.')) return;
   try {
-    await fetch(`http://localhost:3011/api/expenses/config/${id}`, { method: 'DELETE' });
+    await fetch(`/api/expenses/config/${id}`, { method: 'DELETE' });
     await fetchConfigs();
   } catch (err) {
     alert('Gagal menghapus konfigurasi.');
@@ -253,7 +253,7 @@ const deleteConfig = async (id: string) => {
 const triggerConfig = async (id: string) => {
   triggeringId.value = id;
   try {
-    const res = await fetch('http://localhost:3011/api/expenses/trigger', {
+    const res = await fetch('/api/expenses/trigger', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ configId: id })
@@ -265,7 +265,7 @@ const triggerConfig = async (id: string) => {
     alert('Pengeluaran berhasil dicatat!');
     await fetchHistory();
   } catch (err: any) {
-    alert('Gagal mencatat: ' + err.message);
+    alert('Pencatatan gagal dilakukan. Periksa kembali form isian Anda.');
   }
   triggeringId.value = null;
 };
@@ -273,7 +273,7 @@ const triggerConfig = async (id: string) => {
 const deleteExpense = async (id: string) => {
   if (!confirm('Hapus riwayat pengeluaran ini?')) return;
   try {
-    await fetch(`http://localhost:3011/api/expenses/${id}`, { method: 'DELETE' });
+    await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
     await fetchHistory();
   } catch (err) {
     alert('Gagal menghapus riwayat.');

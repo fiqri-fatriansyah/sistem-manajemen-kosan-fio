@@ -199,10 +199,10 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const [roomsRes, typesRes, rentalsRes, configRes] = await Promise.all([
-      fetch('http://localhost:3011/api/rooms'),
-      fetch('http://localhost:3011/api/rooms/types'),
-      fetch('http://localhost:3011/api/rentals'),
-      fetch('http://localhost:3011/api/config')
+      fetch('/api/rooms'),
+      fetch('/api/rooms/types'),
+      fetch('/api/rentals'),
+      fetch('/api/config')
     ]);
     rooms.value = await roomsRes.json();
     roomTypes.value = await typesRes.json();

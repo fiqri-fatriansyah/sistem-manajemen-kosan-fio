@@ -7,7 +7,7 @@
     <div v-if="isSidebarOpen && isMobile" class="sidebar-overlay" @click="isSidebarOpen = false"></div>
     <aside class="sidebar" :class="{ 'closed': !isSidebarOpen }">
       <div class="brand" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.625rem; padding: 3.75rem 0.625rem 1.25rem 0.625rem;">
-        <img v-if="appConfig.appLogoUrl" :src="'http://localhost:3011' + appConfig.appLogoUrl" style="max-width: 80%; max-height: 5rem; object-fit: contain;" />
+        <img v-if="appConfig.appLogoUrl" :src="'' + appConfig.appLogoUrl" style="max-width: 80%; max-height: 5rem; object-fit: contain;" />
         <span style="font-size: 1rem; font-weight: bold; line-height: 1.2; word-wrap: break-word; width: 100%;">{{ appConfig.appName || 'Kosan Fio' }}</span>
       </div>
       <nav>
@@ -39,7 +39,7 @@ const isMobile = ref(false);
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:3011/api/config');
+    const res = await fetch('/api/config');
     appConfig.value = await res.json();
     if (appConfig.value.appName) {
       document.title = appConfig.value.appName;

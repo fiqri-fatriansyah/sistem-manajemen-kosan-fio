@@ -79,7 +79,7 @@ const fetchEvents = async () => {
 const addEvent = async () => {
   if (!form.value.name || !form.value.date) return alert('Nama dan Tanggal harus diisi');
   try {
-    await fetch('http://localhost:3011/api/events', {
+    await fetch('/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)
@@ -94,7 +94,7 @@ const addEvent = async () => {
 
 const deleteEvent = async (id: string) => {
   if (confirm('Hapus acara ini?')) {
-    await fetch(`http://localhost:3011/api/events/${id}`, { method: 'DELETE' });
+    await fetch(`/api/events/${id}`, { method: 'DELETE' });
     fetchEvents();
   }
 };

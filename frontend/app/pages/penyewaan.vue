@@ -8,9 +8,9 @@
       
       <div style="display: flex; gap: 0.9375rem; align-items: center; margin-bottom: 0.9375rem;">
         <strong style="color: var(--text-main);">Laporan Penyewaan:</strong>
-        <a href="http://localhost:3011/api/reports/renting?format=pdf" target="_blank"><button class="btn" style="background: #c62828; padding: 0.3125rem 0.9375rem; font-size: 1rem;">PDF</button></a>
-        <a href="http://localhost:3011/api/reports/renting?format=excel" target="_blank"><button class="btn" style="background: #107c41; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Excel</button></a>
-        <a href="http://localhost:3011/api/reports/renting?format=word" target="_blank"><button class="btn" style="background: #2b579a; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Word</button></a>
+        <a href="/api/reports/renting?format=pdf" target="_blank"><button class="btn" style="background: #c62828; padding: 0.3125rem 0.9375rem; font-size: 1rem;">PDF</button></a>
+        <a href="/api/reports/renting?format=excel" target="_blank"><button class="btn" style="background: #107c41; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Excel</button></a>
+        <a href="/api/reports/renting?format=word" target="_blank"><button class="btn" style="background: #2b579a; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Word</button></a>
       </div>
 
       <div style="display: flex; gap: 0.9375rem; align-items: center;">
@@ -23,9 +23,9 @@
           <option value="yearly">Tahunan</option>
           <option value="">Semua Waktu</option>
         </select>
-        <a :href="'http://localhost:3011/api/reports/financial?range=' + financialRange + '&format=pdf'" target="_blank"><button class="btn" style="background: #c62828; padding: 0.3125rem 0.9375rem; font-size: 1rem;">PDF</button></a>
-        <a :href="'http://localhost:3011/api/reports/financial?range=' + financialRange + '&format=excel'" target="_blank"><button class="btn" style="background: #107c41; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Excel</button></a>
-        <a :href="'http://localhost:3011/api/reports/financial?range=' + financialRange + '&format=word'" target="_blank"><button class="btn" style="background: #2b579a; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Word</button></a>
+        <a :href="'/api/reports/financial?range=' + financialRange + '&format=pdf'" target="_blank"><button class="btn" style="background: #c62828; padding: 0.3125rem 0.9375rem; font-size: 1rem;">PDF</button></a>
+        <a :href="'/api/reports/financial?range=' + financialRange + '&format=excel'" target="_blank"><button class="btn" style="background: #107c41; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Excel</button></a>
+        <a :href="'/api/reports/financial?range=' + financialRange + '&format=word'" target="_blank"><button class="btn" style="background: #2b579a; padding: 0.3125rem 0.9375rem; font-size: 1rem;">Word</button></a>
       </div>
     </div>
 
@@ -77,7 +77,7 @@
             </td>
             <td>
               <div style="display: flex; align-items: center; gap: 0.625rem;">
-                <img v-if="r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl" :src="'http://localhost:3011' + (r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl)" style="width: 2.5rem; height: 2.5rem; border-radius: 0.25rem; object-fit: cover;" />
+                <img v-if="r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl" :src="'' + (r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl)" style="width: 2.5rem; height: 2.5rem; border-radius: 0.25rem; object-fit: cover;" />
                 <div v-else style="width: 2.5rem; height: 2.5rem; background: #eee; border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; font-size: 0.7em; color: #999;">No Img</div>
                 <div>
                   <strong>{{ r.roomId?.roomNumber || '?' }}</strong><br>
@@ -185,10 +185,10 @@ const appConfig = ref<any>({});
 const fetchData = async () => {
   pending.value = true;
   try {
-    const res = await fetch('http://localhost:3011/api/rentals');
+    const res = await fetch('/api/rentals');
     rentals.value = await res.json();
     
-    const cfgRes = await fetch('http://localhost:3011/api/config');
+    const cfgRes = await fetch('/api/config');
     appConfig.value = await cfgRes.json();
   } catch (err) {
     console.error(err);
@@ -285,7 +285,7 @@ const translateStatus = (status: string) => {
 const endStay = async (rentalId: string) => {
   if (confirm('Akhiri masa sewa dan kosongkan room? Room akan diubah statusnya menjadi Cleaning.')) {
     try {
-      const res = await fetch(`http://localhost:3011/api/rentals/${rentalId}/end-stay`, {
+      const res = await fetch(`/api/rentals/${rentalId}/end-stay`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -295,10 +295,10 @@ const endStay = async (rentalId: string) => {
       msg += `Tagihan Sisa: Rp ${data.amountToPay || 0}\n`;
       alert(msg);
       // Auto open lunas receipt
-      window.open(`http://localhost:3011/receipts/Lunas_${data.transactionId}.pdf`, '_blank');
+      window.open(`/receipts/Lunas_${data.transactionId}.pdf`, '_blank');
       fetchData();
     } catch (err: any) {
-      alert('Gagal memproses pengakhiran sewa: ' + err.message);
+      alert('Gagal mengakhiri masa sewa. Mohon ulangi prosesnya.');
     }
   }
 };
@@ -306,12 +306,12 @@ const endStay = async (rentalId: string) => {
 const cancelRental = async (rentalId: string) => {
   if (confirm('Anda yakin ingin membatalkan penyewaan ini?')) {
     try {
-      const res = await fetch(`http://localhost:3011/api/rentals/${rentalId}/cancel`, { method: 'POST' });
+      const res = await fetch(`/api/rentals/${rentalId}/cancel`, { method: 'POST' });
       const data = await res.json();
       if(data.error) throw new Error(data.error);
       fetchData();
     } catch (err: any) {
-      alert('Gagal membatalkan: ' + err.message);
+      alert('Gagal membatalkan transaksi. Mohon ulangi kembali.');
     }
   }
 };
@@ -329,7 +329,7 @@ const payRent = async (rental: any) => {
   }
 
   try {
-    const res = await fetch(`http://localhost:3011/api/rentals/${rental._id}/pay`, {
+    const res = await fetch(`/api/rentals/${rental._id}/pay`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount })
@@ -341,17 +341,17 @@ const payRent = async (rental: any) => {
     // Auto open receipt (last payment)
     const lastPay = data.payments[data.payments.length - 1];
     if (lastPay) {
-      window.open(`http://localhost:3011/receipts/Payment_${data.transactionId}_${lastPay.receiptId}.pdf`, '_blank');
+      window.open(`/receipts/Payment_${data.transactionId}_${lastPay.receiptId}.pdf`, '_blank');
     }
 
     fetchData();
   } catch (err: any) {
-    alert('Gagal memproses pembayaran: ' + err.message);
+    alert('Proses pembayaran terhenti. Silakan coba lagi.');
   }
 };
 
 const openReceipt = (rental: any, type: string) => {
-  window.open(`http://localhost:3011/api/receipts/${type}/${rental.transactionId}`, '_blank');
+  window.open(`/api/receipts/${type}/${rental.transactionId}`, '_blank');
 };
 
 const sendWaReceipt = (r: any) => {
@@ -363,7 +363,7 @@ const sendWaReceipt = (r: any) => {
   const type = r.status === 'Completed' ? 'Lunas' : 'Deposit';
   let text = '';
   if (appConfig.value?.waKwitansiType === 'Link') {
-    text = `Halo ${cust.name}, ini link kwitansi ${type} sewa kos Anda:\n\nhttp://localhost:3011/api/receipts/${type}/${r.transactionId}`;
+    text = `Halo ${cust.name}, ini link kwitansi ${type} sewa kos Anda:\n\n/api/receipts/${type}/${r.transactionId}`;
   } else {
     text = `Halo ${cust.name},\nBerikut ringkasan Kwitansi ${type} penyewaan Kos Anda:\n\n` +
            `ID Transaksi: ${r.transactionId}\n` +
@@ -382,7 +382,7 @@ const sendWaReceipt = (r: any) => {
 const checkIn = async (rentalId: string) => {
   if (confirm('Konfirmasi bahwa penyewa telah hadir dan setuju untuk Check-In sekarang?')) {
     try {
-      const res = await fetch(`http://localhost:3011/api/rentals/${rentalId}/check-in`, {
+      const res = await fetch(`/api/rentals/${rentalId}/check-in`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -390,10 +390,10 @@ const checkIn = async (rentalId: string) => {
         alert('Check-In Berhasil!');
         fetchData();
       } else {
-        alert('Gagal Check-In: ' + data.error);
+        alert('Check-In dibatalkan karena ada data yang kurang sesuai. Mohon periksa kembali.');
       }
     } catch (err: any) {
-      alert('Error: ' + err.message);
+      alert('Terjadi kesalahan sistem atau jaringan terputus. Silakan coba lagi.');
     }
   }
 };
@@ -453,7 +453,7 @@ const sendWaReminderReturn = (r: any) => {
 const emailReceipt = async (rentalId: string, type: 'Deposit' | 'Lunas') => {
   try {
     alert('Mengirim email... Mohon tunggu.');
-    const res = await fetch(`http://localhost:3011/api/rentals/${rentalId}/email-receipt`, {
+    const res = await fetch(`/api/rentals/${rentalId}/email-receipt`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type })
@@ -493,7 +493,7 @@ const handleKwitansiAction = (event: Event, r: any) => {
 const resolveEviction = async (id: string) => {
   if (!confirm('Tandai masalah penyewaan ini sebagai Selesai?')) return;
   try {
-    const res = await fetch(`http://localhost:3011/api/rentals/${id}/resolve-eviction`, { method: 'POST' });
+    const res = await fetch(`/api/rentals/${id}/resolve-eviction`, { method: 'POST' });
     if (!res.ok) throw new Error('Gagal menyelesaikan pengusiran');
     fetchData();
   } catch (err: any) {
@@ -520,7 +520,7 @@ const sendWaEviction = (r: any) => {
 const emailEviction = async (rentalId: string) => {
   try {
     alert('Mengirim email... Mohon tunggu.');
-    const res = await fetch(`http://localhost:3011/api/rentals/${rentalId}/email-eviction`, {
+    const res = await fetch(`/api/rentals/${rentalId}/email-eviction`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });

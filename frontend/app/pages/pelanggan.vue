@@ -58,7 +58,7 @@
                   <h4 style="margin-bottom: 0.625rem; color: var(--primary-color);">Daftar Room yang Sedang Disewa:</h4>
                   <ul style="padding-left: 1.25rem; font-size: 0.9rem;">
                     <li v-for="r in getRentalsForCustomer(c._id)" :key="r._id" style="margin-bottom: 0.625rem; display: flex; align-items: center; gap: 0.625rem;">
-                      <img v-if="r.roomId?.imageUrl" :src="'http://localhost:3011' + r.roomId.imageUrl" style="width: 1.875rem; height: 1.875rem; border-radius: 0.25rem; object-fit: cover;" />
+                      <img v-if="r.roomId?.imageUrl" :src="'' + r.roomId.imageUrl" style="width: 1.875rem; height: 1.875rem; border-radius: 0.25rem; object-fit: cover;" />
                       <div v-else style="width: 1.875rem; height: 1.875rem; background: #eee; border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; font-size: 0.6em; color: #999;">No Img</div>
                       <div>
                         <strong>Room {{ r.roomId?.roomNumber || '-' }}</strong> 
@@ -196,7 +196,7 @@ const saveCustomer = async () => {
   if (!form.value.name || !form.value.telephone) return alert('Nama dan Telephone harus diisi');
 
   try {
-    const url = isEditing.value ? `http://localhost:3011/api/customers/${editId.value}` : 'http://localhost:3011/api/customers';
+    const url = isEditing.value ? `/api/customers/${editId.value}` : '/api/customers';
     const method = isEditing.value ? 'PUT' : 'POST';
 
     await fetch(url, {
@@ -229,7 +229,7 @@ const editCustomer = (c: any) => {
 const deleteCustomer = async (id: string) => {
   if (confirm('Anda yakin ingin menghilangkan (soft-delete) pelanggan ini?')) {
     try {
-      await fetch(`http://localhost:3011/api/customers/${id}`, { method: 'DELETE' });
+      await fetch(`/api/customers/${id}`, { method: 'DELETE' });
       fetchData();
     } catch (err) {
       alert('Gagal menghilangkan pelanggan');

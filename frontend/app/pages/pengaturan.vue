@@ -14,6 +14,7 @@
       
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 2rem; border-bottom: 2px solid #eee; padding-bottom: 1rem;">
         <button class="btn" :style="activeTab === 'denda' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'denda'">Denda</button>
+        <button class="btn" :style="activeTab === 'fasilitas' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'fasilitas'">Kamus Fasilitas</button>
         <button class="btn" :style="activeTab === 'antarmuka' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'antarmuka'">Antarmuka</button>
         <button class="btn" :style="activeTab === 'wa' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'wa'">WhatsApp</button>
         <button class="btn" :style="activeTab === 'template' ? 'background: var(--primary-color); color: white;' : 'background: #f5f5f5; color: #333;'" @click="activeTab = 'template'">Template Pesan</button>
@@ -56,6 +57,26 @@
       </div>
     </div>
 
+    <!-- Kamus Fasilitas -->
+    <div v-show="activeTab === 'fasilitas'" class="material-card" style="max-width: 37.5rem;">
+      <h2 style="margin-bottom: 1.25rem; color: var(--primary-color);">Kamus Fasilitas (Tags)</h2>
+      <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9em;">
+        Daftar ini berisi semua fasilitas yang pernah Anda tambahkan. Anda dapat menghapus fasilitas yang salah ketik atau sudah tidak terpakai dari daftar autocomplete. 
+        (Menghapus fasilitas dari daftar ini tidak akan menghapusnya dari kamar yang sudah telanjur memakainya).
+      </p>
+      
+      <div v-if="pendingFacilities">Memuat fasilitas...</div>
+      <div v-else>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <div v-for="tag in facilities" :key="tag._id" style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.6rem; border-radius: 0.25rem; border: 1px solid #c8e6c9; display: flex; align-items: center; gap: 0.5rem;">
+            <span>{{ tag.name }}</span>
+            <button @click="deleteFacility(tag._id)" style="background: none; border: none; color: #c62828; cursor: pointer; font-weight: bold; font-size: 1.1em; padding: 0;">&times;</button>
+          </div>
+        </div>
+        <div v-if="facilities.length === 0" style="color: #999; font-style: italic;">Belum ada fasilitas yang tersimpan.</div>
+      </div>
+    </div>
+
     <!-- Interface & Display -->
     <div v-show="activeTab === 'antarmuka'" class="material-card" style="max-width: 37.5rem;">
       <h2 style="margin-bottom: 1.25rem; color: var(--primary-color);">Antarmuka & Tampilan</h2>
@@ -76,7 +97,7 @@
           <label style="display: block; font-size: 1em; margin-bottom: 0.3125rem;">Logo Aplikasi</label>
           <input type="file" class="input" accept="image/*" @change="e => uploadImage(e, 'logo')" />
           <div v-if="form.appLogoUrl" style="margin-top: 0.625rem;">
-            <img :src="'http://localhost:3011' + form.appLogoUrl" style="height: 3.75rem; object-fit: contain; border-radius: 0.25rem; background: #f0f0f0; padding: 0.3125rem;" />
+            <img :src="'' + form.appLogoUrl" style="height: 3.75rem; object-fit: contain; border-radius: 0.25rem; background: #f0f0f0; padding: 0.3125rem;" />
           </div>
         </div>
 
@@ -84,7 +105,7 @@
           <label style="display: block; font-size: 1em; margin-bottom: 0.3125rem;">Favicon Aplikasi (Ikon Tab Browser)</label>
           <input type="file" class="input" accept="image/*" @change="e => uploadImage(e, 'favicon')" />
           <div v-if="form.appFaviconUrl" style="margin-top: 0.625rem;">
-            <img :src="'http://localhost:3011' + form.appFaviconUrl" style="height: 2rem; width: 2rem; object-fit: contain; border-radius: 0.25rem; background: #f0f0f0; padding: 0.125rem;" />
+            <img :src="'' + form.appFaviconUrl" style="height: 2rem; width: 2rem; object-fit: contain; border-radius: 0.25rem; background: #f0f0f0; padding: 0.125rem;" />
           </div>
         </div>
 
@@ -249,7 +270,7 @@
               <option value="30">30 Hari Terakhir</option>
               <option value="all">Seluruh Waktu</option>
             </select>
-            <a :href="'http://localhost:3011/api/audit/export/pdf?pin=' + pagePin + '&range=' + pdfRange" target="_blank" style="display: flex; text-decoration: none;">
+            <a :href="'/api/audit/export/pdf?pin=' + pagePin + '&range=' + pdfRange" target="_blank" style="display: flex; text-decoration: none;">
               <button class="btn" style="background: #c62828; padding: 0.6em 1em; font-size: 1em; white-space: nowrap; margin: 0;">Print PDF Log</button>
             </a>
           </div>
@@ -406,6 +427,35 @@ const waStatus = ref<any>({ isReady: false, qr: null, isRunning: false });
 const waPending = ref(false);
 let waInterval: any = null;
 
+const facilities = ref<any[]>([]);
+const pendingFacilities = ref(false);
+
+const fetchFacilities = async () => {
+  pendingFacilities.value = true;
+  try {
+    const res = await fetch('/api/rooms/features');
+    facilities.value = await res.json();
+  } catch (err) {
+    console.error(err);
+  }
+  pendingFacilities.value = false;
+};
+
+const deleteFacility = async (id: string) => {
+  if (!confirm('Yakin ingin menghapus fasilitas ini dari daftar?')) return;
+  try {
+    const res = await fetch(`/api/rooms/features/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      alert('Fasilitas berhasil dihapus dari kamus.');
+      fetchFacilities();
+    } else {
+      alert('Gagal menghapus fasilitas. Silakan coba lagi.');
+    }
+  } catch (err) {
+    alert('Terjadi kesalahan koneksi.');
+  }
+};
+
 const uploadImage = async (e: any, type: string) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -413,7 +463,7 @@ const uploadImage = async (e: any, type: string) => {
   formData.append('image', file);
   formData.append('type', type);
   try {
-    const res = await fetch('http://localhost:3011/api/config/upload-image', {
+    const res = await fetch('/api/config/upload-image', {
       method: 'POST',
       body: formData
     });
@@ -435,7 +485,7 @@ const fetchConfig = async () => {
   pending.value = true;
   demoPending.value = true;
   try {
-    const res = await fetch('http://localhost:3011/api/config');
+    const res = await fetch('/api/config');
     const data = await res.json();
     if(data) {
       form.value.penaltyType = data.penaltyType;
@@ -462,7 +512,7 @@ const fetchConfig = async () => {
       }
     }
     
-    const demoRes = await fetch('http://localhost:3011/api/config/demo-status');
+    const demoRes = await fetch('/api/config/demo-status');
     const demoData = await demoRes.json();
     isDemoMode.value = demoData.isDemoMode;
 
@@ -476,7 +526,7 @@ const fetchConfig = async () => {
 const checkWaStatus = async () => {
   waPending.value = true;
   try {
-    const res = await fetch('http://localhost:3011/api/config/whatsapp-status');
+    const res = await fetch('/api/config/whatsapp-status');
     waStatus.value = await res.json();
     if (!waStatus.value.isReady && waStatus.value.isRunning && form.value.enableWhatsAppBot) {
       if (!waInterval) waInterval = setInterval(checkWaStatus, 3000);
@@ -490,7 +540,7 @@ const checkWaStatus = async () => {
 const saveConfig = async () => {
   saving.value = true;
   try {
-    await fetch('http://localhost:3011/api/config', {
+    await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)
@@ -508,7 +558,7 @@ const saveInterfaceConfig = async () => {
   }
   saving.value = true;
   try {
-    await fetch('http://localhost:3011/api/config', {
+    await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)
@@ -537,7 +587,7 @@ const saveWhatsAppConfig = async () => {
   
   saving.value = true;
   try {
-    await fetch('http://localhost:3011/api/config', {
+    await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)
@@ -563,7 +613,7 @@ const toggleDemoMode = async () => {
 
   demoToggling.value = true;
   try {
-    const res = await fetch('http://localhost:3011/api/config/toggle-demo', {
+    const res = await fetch('/api/config/toggle-demo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin })
@@ -574,10 +624,10 @@ const toggleDemoMode = async () => {
       alert(`SUKSES: Mode Contoh berhasil ${actionText}!`);
       window.location.reload();
     } else {
-      alert('GAGAL: ' + data.error);
+      alert('Proses ditolak oleh sistem. Pastikan PIN atau data yang dimasukkan benar.');
     }
   } catch (err: any) {
-    alert('Gagal mengeksekusi toggle demo: ' + err.message);
+    alert('Gagal mengubah mode sistem. Coba refresh halaman.');
   }
   demoToggling.value = false;
 };
@@ -589,7 +639,7 @@ const executeFactoryReset = async () => {
   if (confirm('PERINGATAN TERAKHIR: Semua data akan hilang selamanya. Anda yakin?')) {
     wiping.value = true;
     try {
-      const res = await fetch('http://localhost:3011/api/config/wipe', {
+      const res = await fetch('/api/config/wipe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin, wipeAudit: wipeAudit.value })
@@ -600,10 +650,10 @@ const executeFactoryReset = async () => {
         alert('SUKSES: ' + data.message);
         window.location.reload();
       } else {
-        alert('GAGAL: ' + data.error);
+        alert('Proses ditolak oleh sistem. Pastikan PIN atau data yang dimasukkan benar.');
       }
     } catch (err: any) {
-      alert('Gagal mengeksekusi factory reset: ' + err.message);
+      alert('Proses hapus data gagal. Silakan muat ulang halaman.');
     }
     wiping.value = false;
   }
@@ -613,7 +663,7 @@ const fetchAuditLogs = async (page = 1) => {
   pendingAudit.value = true;
   auditPage.value = page;
   try {
-    const res = await fetch(`http://localhost:3011/api/audit?pin=${pagePin.value}&page=${page}&limit=${auditLimit.value}&search=${encodeURIComponent(auditSearch.value)}`);
+    const res = await fetch(`/api/audit?pin=${pagePin.value}&page=${page}&limit=${auditLimit.value}&search=${encodeURIComponent(auditSearch.value)}`);
     if (res.ok) {
       const data = await res.json();
       auditLogs.value = data.logs;
@@ -628,13 +678,14 @@ const fetchAuditLogs = async (page = 1) => {
 const authenticatePage = async () => {
   pageAuthenticating.value = true;
   try {
-    const res = await fetch(`http://localhost:3011/api/audit?pin=${pagePin.value}`);
+    const res = await fetch(`/api/audit?pin=${pagePin.value}`);
     if (res.ok) {
       await fetchAuditLogs(1);
       pageAuthenticated.value = true;
       fetchConfig();
+      fetchFacilities();
     } else {
-      alert('PIN Salah!');
+      alert('PIN Salah! Mohon periksa kembali.');
     }
   } catch (err) {
     console.error(err);

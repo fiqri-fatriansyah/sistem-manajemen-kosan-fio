@@ -13,6 +13,16 @@ export const calculateRentalFinancials = (rentalDoc: any) => {
   const rt = rental.roomId?.roomTypeId;
   if (!rt) return rental;
 
+  const addMonths = (date: Date, months: number) => {
+    const d = new Date(date);
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if (d.getDate() !== day) {
+      d.setDate(0);
+    }
+    return d;
+  };
+
   const now = new Date();
   const start = new Date(rental.rentalStartTime);
   let totalPaid = 0;
@@ -32,7 +42,7 @@ export const calculateRentalFinancials = (rentalDoc: any) => {
     const monthsPaidFull = Math.floor(totalPaid / monthlyPrice);
     saldoMengendap = 0; // Will be calculated if there's overpayment
 
-    calculatedPaidUntil = new Date(start.getFullYear(), start.getMonth() + monthsPaidFull, start.getDate());
+    calculatedPaidUntil = addMonths(start, monthsPaidFull);
     
     if (rental.status !== 'Completed' && rental.status !== 'Cancelled') {
       if (rental.status === 'Active') {
@@ -41,10 +51,10 @@ export const calculateRentalFinancials = (rentalDoc: any) => {
         
         // Calculate expected months up to today
         let expectedMonths = 1;
-        let tempDate = new Date(start.getFullYear(), start.getMonth() + 1, start.getDate());
+        let tempDate = addMonths(start, 1);
         while (now > tempDate) {
           expectedMonths++;
-          tempDate.setMonth(tempDate.getMonth() + 1);
+          tempDate = addMonths(start, expectedMonths);
         }
         
         const expectedTotal = expectedMonths * monthlyPrice;

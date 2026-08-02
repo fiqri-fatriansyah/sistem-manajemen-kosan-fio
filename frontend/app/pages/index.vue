@@ -90,7 +90,7 @@
 
         <div>
           <div v-if="selectedRoom || selectedRoomType" style="margin-top: 0.625rem;">
-            <img v-if="selectedRoom?.imageUrl || selectedRoomType?.imageUrl" :src="'http://localhost:3011' + (selectedRoom?.imageUrl || selectedRoomType?.imageUrl)" style="width: 9.375rem; height: 9.375rem; object-fit: cover; border-radius: 0.5rem; border: 0.125rem solid var(--surface-border);" />
+            <img v-if="selectedRoom?.imageUrl || selectedRoomType?.imageUrl" :src="'' + (selectedRoom?.imageUrl || selectedRoomType?.imageUrl)" style="width: 9.375rem; height: 9.375rem; object-fit: cover; border-radius: 0.5rem; border: 0.125rem solid var(--surface-border);" />
             <div v-else style="width: 9.375rem; height: 9.375rem; background: #eee; border-radius: 0.5rem; border: 0.125rem solid var(--surface-border); display: flex; align-items: center; justify-content: center; font-size: 1em; color: #999;">No Img</div>
           </div>
         </div>
@@ -250,7 +250,7 @@
             <td>{{ r.customerIds?.[0]?.name }}</td>
             <td>
               <div style="display: flex; align-items: center; gap: 0.625rem;">
-                <img v-if="r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl" :src="'http://localhost:3011' + (r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl)" style="width: 2.5rem; height: 2.5rem; border-radius: 0.25rem; object-fit: cover;" />
+                <img v-if="r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl" :src="'' + (r.roomId?.imageUrl || r.roomId?.roomTypeId?.imageUrl)" style="width: 2.5rem; height: 2.5rem; border-radius: 0.25rem; object-fit: cover;" />
                 <div v-else style="width: 2.5rem; height: 2.5rem; background: #eee; border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; font-size: 1em; color: #999;">No Img</div>
                 {{ r.roomId?.roomNumber }}<br><span style="font-size: 0.8em; color: #666;">{{ r.roomId?.roomTypeId?.name }}</span>
               </div>
@@ -347,7 +347,7 @@
           <li v-for="(k, idx) in stats?.topRooms" :key="k.roomType?._id" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9375rem; padding-bottom: 0.9375rem; border-bottom: 1px solid #eee;">
             <div style="display: flex; align-items: center; gap: 0.9375rem;">
               <span style="font-size: 1.2rem; font-weight: bold; color: #aaa;">#{{ idx + 1 }}</span>
-              <img v-if="k.roomType?.imageUrl" :src="'http://localhost:3011' + k.roomType.imageUrl" style="width: 3.75rem; height: 3.75rem; border-radius: 0.25rem; object-fit: cover;" />
+              <img v-if="k.roomType?.imageUrl" :src="'' + k.roomType.imageUrl" style="width: 3.75rem; height: 3.75rem; border-radius: 0.25rem; object-fit: cover;" />
               <div v-else style="width: 3.75rem; height: 3.75rem; background: #eee; border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; font-size: 1em; color: #999;">No Img</div>
               <div style="line-height: 1.4;">
                 <strong style="font-size: 1.1em;">{{ k.roomType?.name }}</strong><br/>
@@ -446,7 +446,7 @@ const checkIn = async (r: any) => {
       const paymentNum = parseInt(paymentStr, 10);
       
       if (paymentNum > 0) {
-        const payRes = await fetch(`http://localhost:3011/api/rentals/${r._id}/payments`, {
+        const payRes = await fetch(`/api/rentals/${r._id}/payments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -457,21 +457,21 @@ const checkIn = async (r: any) => {
         });
         if (!payRes.ok) {
           const err = await payRes.json();
-          alert('Gagal memproses pembayaran: ' + err.error);
+          alert('Gagal memproses pembayaran. Mohon periksa kembali data atau jaringan Anda.');
           return; 
         }
       }
 
-      const res = await fetch(`http://localhost:3011/api/rentals/${r._id}/check-in`, { method: 'POST' });
+      const res = await fetch(`/api/rentals/${r._id}/check-in`, { method: 'POST' });
       if (res.ok) {
         alert(paymentNum > 0 ? `Pembayaran Rp ${paymentNum.toLocaleString('id-ID')} & Check-In Berhasil!` : 'Check-In Berhasil!');
         fetchData();
       } else {
         const data = await res.json();
-        alert('Gagal Check-In: ' + data.error);
+        alert('Check-In dibatalkan karena ada data yang kurang sesuai. Mohon periksa kembali.');
       }
     } catch(err: any) {
-      alert('Error: ' + err.message);
+      alert('Terjadi kesalahan sistem atau jaringan terputus. Silakan coba lagi.');
     }
   }
 };
@@ -485,7 +485,7 @@ const processQuickPayment = async (r: any) => {
   if (!confirm(`Konfirmasi pembayaran sebesar Rp ${paymentNum.toLocaleString('id-ID')}?`)) return;
 
   try {
-    const payRes = await fetch(`http://localhost:3011/api/rentals/${r._id}/payments`, {
+    const payRes = await fetch(`/api/rentals/${r._id}/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -496,14 +496,14 @@ const processQuickPayment = async (r: any) => {
     });
     if (!payRes.ok) {
       const err = await payRes.json();
-      alert('Gagal memproses pembayaran: ' + err.error);
+      alert('Gagal memproses pembayaran. Mohon periksa kembali data atau jaringan Anda.');
     } else {
       alert(`Pembayaran Rp ${paymentNum.toLocaleString('id-ID')} Berhasil!`);
       r.quickPayment = '';
       fetchData();
     }
   } catch(err: any) {
-    alert('Error jaringan: ' + err.message);
+    alert('Koneksi jaringan terputus. Mohon periksa internet Anda.');
   }
 };
 
@@ -561,7 +561,7 @@ const selectedRoom = computed(() => rooms.value.find(k => k._id === quickForm.va
 watch(() => quickForm.value.roomId, async (newVal) => {
   if (newVal) {
     try {
-      const res = await fetch(`http://localhost:3011/api/rentals/unavailable-dates/${newVal}`);
+      const res = await fetch(`/api/rentals/unavailable-dates/${newVal}`);
       unavailableDatesForSelectedRoom.value = await res.json();
     } catch(e) {
       unavailableDatesForSelectedRoom.value = [];
@@ -684,7 +684,7 @@ const fetchData = async () => {
     quickForm.value.roomTypeId = roomTypes.value[0]._id;
   }
   
-  const activeRes = await fetch('http://localhost:3011/api/rentals');
+  const activeRes = await fetch('/api/rentals');
   const allActive = await activeRes.json();
   allActiveRentals.value = allActive.filter((r: any) => r.status !== 'Completed' && r.status !== 'Cancelled');
   
@@ -692,7 +692,7 @@ const fetchData = async () => {
   todayZero.setHours(0,0,0,0);
 
   try {
-    const eventsRes = await fetch(`http://localhost:3011/api/events?year=${todayZero.getFullYear()}`);
+    const eventsRes = await fetch(`/api/events?year=${todayZero.getFullYear()}`);
     const eventsData = await eventsRes.json();
     const nextHoliday = eventsData.find((e: any) => new Date(e.date) >= todayZero && e.isPublicHoliday);
     if (nextHoliday) {
@@ -705,7 +705,7 @@ const fetchData = async () => {
   } catch (err) { }
 
   try {
-    const cfgRes = await fetch('http://localhost:3011/api/config');
+    const cfgRes = await fetch('/api/config');
     const cfgData = await cfgRes.json();
     if (cfgData) {
       waLinkType.value = cfgData.waLinkType || 'App';
@@ -784,7 +784,7 @@ const processQuickRent = async () => {
     const finalCustomerIds = [];
     for (const t of selectedTenants.value) {
       if (t.isNew) {
-        const custRes = await fetch('http://localhost:3011/api/customers', {
+        const custRes = await fetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: t.name, telephone: t.telephone })
@@ -796,7 +796,7 @@ const processQuickRent = async () => {
       }
     }
 
-    const res = await fetch('http://localhost:3011/api/rentals', {
+    const res = await fetch('/api/rentals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -816,7 +816,7 @@ const processQuickRent = async () => {
 
     const newRental = await res.json();
     if (newRental && newRental.transactionId) {
-       window.open(`http://localhost:3011/api/receipts/Deposit/${newRental.transactionId}`, '_blank');
+       window.open(`/api/receipts/Deposit/${newRental.transactionId}`, '_blank');
     }
 
     alert('Penyewaan berhasil diproses! Transaksi telah dicatat.');
@@ -829,7 +829,7 @@ const processQuickRent = async () => {
     
     fetchData(); 
   } catch (err: any) {
-    alert('Gagal memproses penyewaan: ' + err.message);
+    alert('Proses penyewaan terhenti. Mohon pastikan data sudah lengkap dan coba lagi.');
   } finally {
     processing.value = false;
   }
